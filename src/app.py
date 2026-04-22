@@ -29,7 +29,7 @@ config = load_config(str(BASE_DIR / "benchmark.yaml"))
 # Import database
 # --------------------------------------------------
 from src.database.engine import Database
-from src.database.repository import AsyncRepository
+from src.database.repository import AsyncRepository, Repository
 
 database = Database(config.postgres)
 
@@ -403,11 +403,12 @@ async def page_prompts(request: Request):
 # --------------------------------------------------
 @app.get("/benchmark", response_class=HTMLResponse)
 async def page_benchmark(request: Request):
-    repo = database.get_repository()
+    session = database.get_sync_session()
+    repo = Repository(session)
     try:
         prompt_sets = repo.get_prompt_sets()
     finally:
-        database.get_sync_session().close()
+        session.close()
         
     return _render(
         request,
