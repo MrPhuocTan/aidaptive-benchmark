@@ -820,11 +820,6 @@ class AddServerRequest(BaseModel):
 async def api_add_server(req: AddServerRequest, session: AsyncSession = Depends(get_db)):
     ip = req.ip.strip()
     name = req.name.strip()
-    try:
-        ipaddress.ip_address(ip)
-    except ValueError:
-        return JSONResponse({"error": "Invalid IP address"}, status_code=400)
-    
     from src.database.tables import ServerProfile
     from sqlalchemy.future import select
     from src.config import ServerConfig
@@ -833,9 +828,14 @@ async def api_add_server(req: AddServerRequest, session: AsyncSession = Depends(
     result = await session.execute(select(ServerProfile).filter_by(server_id=ip))
     profile = result.scalars().first()
     
+    if not profile:
+        try:
+            ipaddress.ip_address(ip)
+        except ValueError:
+            return JSONResponse({"error": "Invalid IP address"}, status_code=400)
+    
     if profile:
         profile.name = name
-        profile.ip_address = ip
     else:
         profile = ServerProfile(
             server_id=ip,
@@ -848,11 +848,15 @@ async def api_add_server(req: AddServerRequest, session: AsyncSession = Depends(
     await session.commit()
     
     # Update memory
+    existing = config.servers.get(ip)
+    ollama_url = existing.ollama_url if existing else f"http://{ip}:11434"
+    agent_url = existing.agent_url if existing else f"http://{ip}:9100"
+    
     config.servers[ip] = ServerConfig(
         name=name,
-        description="",
-        ollama_url=f"http://{ip}:11434",
-        agent_url=f"http://{ip}:9100",
+        description=existing.description if existing else "",
+        ollama_url=ollama_url,
+        agent_url=agent_url,
     )
     
     return {"status": "ok", "server": await _build_server_payload(ip, config.servers[ip])}

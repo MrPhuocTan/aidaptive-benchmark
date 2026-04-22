@@ -72,7 +72,7 @@
                         <td class="px-6 py-4 align-middle">
                             <div class="font-medium text-slate-800 server-name-cell">{{ profile.name }}</div>
                         </td>
-                        <td class="px-6 py-4 font-mono text-sm text-slate-600 server-ip-cell align-middle">{{ profile.ip_address }}</td>
+                        <td class="px-6 py-4 font-mono text-sm text-slate-600 server-ip-cell align-middle">{{ profile.ip_address or profile.server_id }}</td>
                         <td class="px-6 py-4 align-middle">
                             <div class="text-xs text-slate-600 leading-relaxed">
                                 {% if profile.cpu_model %}CPU: {{ profile.cpu_model }}<br>{% endif %}
@@ -95,8 +95,8 @@
                             {{ profile.recorded_at.strftime('%Y-%m-%d %H:%M') if profile.recorded_at else '--' }}
                         </td>
                         <td class="px-6 py-4 text-right space-x-2 align-middle">
-                            <button onclick="editServer('{{ profile.ip_address }}', '{{ profile.name }}', this)" class="text-violet-600 hover:text-violet-800 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Edit</button>
-                            <button onclick="deleteServer('{{ profile.ip_address }}', this)" class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
+                            <button onclick="editServer('{{ profile.server_id }}', '{{ profile.name }}', this)" class="text-violet-600 hover:text-violet-800 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Edit</button>
+                            <button onclick="deleteServer('{{ profile.server_id }}', this)" class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
                         </td>
                     </tr>
                     {% else %}
