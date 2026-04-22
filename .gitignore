@@ -28,3 +28,6 @@ reports/*.jpg
 postgres_data/
 influxdb_data/
 grafana_data/
+
+# Debug & Temp
+debug_things/
