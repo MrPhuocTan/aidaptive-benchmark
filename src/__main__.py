@@ -47,7 +47,6 @@ def cli(ctx, config):
         host = os.getenv("AIDAPTIVE_APP_HOST", cfg.app.host)
         port = int(os.getenv("AIDAPTIVE_APP_PORT", str(cfg.app.port)))
         console.print(f"  Web UI:  http://localhost:{port}", style="white")
-        console.print(f"  Grafana: http://localhost:3000", style="white")
         console.print("")
         uvicorn.run(
             "src.app:app",

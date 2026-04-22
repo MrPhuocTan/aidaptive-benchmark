@@ -53,6 +53,7 @@ async def page_report_details(
             if run:
                 report_data = await repo.get_detailed_report_stats(run_id)
                 chart_data = await repo.get_dashboard_chart_data(run_id)
+                timeline_chart = await repo.get_timeline_chart_data(run_id)
         except SQLAlchemyError:
             db_ok = False
 
@@ -68,6 +69,7 @@ async def page_report_details(
             "run": run,
             "report_data": report_data,
             "chart_data": chart_data if run else None,
+            "timeline_chart": timeline_chart if run else None,
             "db_available": db_ok,
             **(_db_warning_payload() if not db_ok else {}),
         },
@@ -90,6 +92,7 @@ async def page_report_download(
             if run:
                 report_data = await repo.get_detailed_report_stats(run_id)
                 chart_data = await repo.get_dashboard_chart_data(run_id)
+                timeline_chart = await repo.get_timeline_chart_data(run_id)
         except SQLAlchemyError:
             db_ok = False
 
@@ -103,6 +106,7 @@ async def page_report_download(
             "run": run,
             "report_data": report_data,
             "chart_data": chart_data if run else None,
+            "timeline_chart": timeline_chart if run else None,
         },
     )
     response.headers["Content-Disposition"] = f'attachment; filename="aidaptive_report_{run_id}.html"'

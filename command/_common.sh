@@ -270,7 +270,7 @@ ensure_support_services() {
   print_info "Starting support services with $compose_cmd"
   if ! (
     cd "$PROJECT_ROOT"
-    $compose_cmd up -d postgres influxdb grafana
+    $compose_cmd up -d postgres influxdb
   ); then
     print_warn "Failed to start Docker services. Continuing with app startup only."
     return 0
@@ -288,11 +288,6 @@ ensure_support_services() {
     print_warn "InfluxDB did not become ready in time"
   fi
 
-  if wait_for_tcp_port 3000 40; then
-    print_ok "Grafana is ready on port 3000"
-  else
-    print_warn "Grafana did not become ready in time"
-  fi
 }
 
 open_log_terminal_tab() {

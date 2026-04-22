@@ -48,14 +48,15 @@ class VLLMBenchAdapter(BaseToolAdapter):
         start_time = time.perf_counter()
 
         semaphore = asyncio.Semaphore(self.concurrency)
+        
+        limits = httpx.Limits(max_keepalive_connections=self.concurrency, max_connections=self.concurrency)
+        async with httpx.AsyncClient(timeout=600.0, limits=limits) as client:
+            async def send_one(prompt_text: str):
+                nonlocal total_output_tokens, total_successes, total_failures
 
-        async def send_one(prompt_text: str):
-            nonlocal total_output_tokens, total_successes, total_failures
-
-            async with semaphore:
-                req_start = time.perf_counter()
-                try:
-                    async with httpx.AsyncClient(timeout=600.0) as client:
+                async with semaphore:
+                    req_start = time.perf_counter()
+                    try:
                         resp = await client.post(
                             f"{self.ollama_url}/v1/chat/completions",
                             json={
@@ -67,36 +68,36 @@ class VLLMBenchAdapter(BaseToolAdapter):
                             },
                         )
 
-                    req_end = time.perf_counter()
-                    latency = (req_end - req_start) * 1000
+                        req_end = time.perf_counter()
+                        latency = (req_end - req_start) * 1000
 
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        usage = data.get("usage", {})
-                        output_tokens = usage.get("completion_tokens", 0)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            usage = data.get("usage", {})
+                            output_tokens = usage.get("completion_tokens", 0)
 
-                        all_latencies.append(latency)
-                        all_ttft.append(latency)
-                        total_output_tokens += output_tokens
-                        total_successes += 1
+                            all_latencies.append(latency)
+                            all_ttft.append(latency)
+                            total_output_tokens += output_tokens
+                            total_successes += 1
 
-                        if output_tokens > 0 and latency > 0:
-                            tps = output_tokens / (latency / 1000)
-                            all_tps.append(tps)
-                    else:
+                            if output_tokens > 0 and latency > 0:
+                                tps = output_tokens / (latency / 1000)
+                                all_tps.append(tps)
+                        else:
+                            total_failures += 1
+                            import logging
+                            logging.getLogger(__name__).warning(
+                                "vLLM API returned HTTP %s: %s", resp.status_code, resp.text[:200]
+                            )
+
+                    except Exception as e:
                         total_failures += 1
                         import logging
-                        logging.getLogger(__name__).warning(
-                            "vLLM API returned HTTP %s: %s", resp.status_code, resp.text[:200]
-                        )
+                        logging.getLogger(__name__).warning("vLLM request failed: %s", e)
 
-                except Exception as e:
-                    total_failures += 1
-                    import logging
-                    logging.getLogger(__name__).warning("vLLM request failed: %s", e)
-
-        tasks = [send_one(p) for p in prompt_texts]
-        await asyncio.gather(*tasks, return_exceptions=True)
+            tasks = [send_one(p) for p in prompt_texts]
+            await asyncio.gather(*tasks, return_exceptions=True)
 
         end_time = time.perf_counter()
         total_time = end_time - start_time

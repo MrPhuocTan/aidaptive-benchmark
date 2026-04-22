@@ -312,18 +312,21 @@ class AsyncRepository:
                 "cpu_pct": [],
                 "vram_used_gb": [],
                 "ram_used_gb": [],
+                "disk_read_mbps": [],
+                "disk_write_mbps": [],
             })
             server["timestamps"].append(snapshot.timestamp.isoformat() if snapshot.timestamp else None)
             server["gpu_util_pct"].append(snapshot.gpu_util_pct)
             server["cpu_pct"].append(snapshot.cpu_pct)
             server["vram_used_gb"].append(snapshot.vram_used_gb)
             server["ram_used_gb"].append(snapshot.ram_used_gb)
+            server["disk_read_mbps"].append(snapshot.disk_read_mbps)
+            server["disk_write_mbps"].append(snapshot.disk_write_mbps)
         
-        return {
-            "timestamps": next(iter(data.values())).get("timestamps", []) if data else [],
-            "server1": data.get("server1", {}),
-            "server2": data.get("server2", {}),
-        }
+        result = {"timestamps": next(iter(data.values())).get("timestamps", []) if data else []}
+        for server_id, server_data in data.items():
+            result[server_id] = server_data
+        return result
 
     async def get_dashboard_chart_data(self, run_id: str) -> dict:
         from collections import defaultdict

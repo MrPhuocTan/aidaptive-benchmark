@@ -21,12 +21,11 @@
 
 ## 1.1 Mục đích
 
-**aiDaptive Benchmark Suite** là phần mềm đo hiệu năng AI, so sánh hiệu suất LLM inference giữa 2 cấu hình:
+**aiDaptive Benchmark Suite** là phần mềm đo hiệu năng AI, cho phép cấu hình và so sánh hiệu suất LLM inference giữa nhiều máy chủ khác nhau:
 
-| Server | Cấu hình | Mục tiêu |
-|--------|----------|----------|
-| **Server 1** | aiDaptive+ **DISABLED** | Baseline - Hardware thuần |
-| **Server 2** | aiDaptive+ **ENABLED** | Chứng minh cải thiện hiệu năng |
+- Quản lý linh hoạt danh sách Server (không giới hạn) qua Data Table.
+- Cho phép lựa chọn từ 1 đến 3 máy chủ tham gia chạy benchmark cùng lúc.
+- **Mục tiêu cốt lõi:** So sánh đối chiếu hiệu năng giữa phần cứng thuần (Baseline) và phần cứng đã được tối ưu (aiDaptive+ Enabled) để chứng minh mức độ cải thiện.
 
 ## 1.2 Tính năng chính
 
@@ -111,8 +110,8 @@
          ┌─────────────────────────┴─────────────────────────┐
          ▼                                                   ▼
 ┌─────────────────────────────┐            ┌─────────────────────────────┐
-│       AI SERVER 1           │            │       AI SERVER 2           │
-│   aiDaptive+ DISABLED       │            │   aiDaptive+ ENABLED        │
+│       AI SERVER 1           │            │       AI SERVER N           │
+│   (e.g., aiDaptive+ OFF)    │   . . .    │   (e.g., aiDaptive+ ON)     │
 │                             │            │                             │
 │  ┌───────────────────────┐  │            │  ┌───────────────────────┐  │
 │  │    Ollama :11434      │  │            │  │    Ollama :11434      │  │
@@ -234,8 +233,8 @@ User clicks "Start Benchmark"
          │     │                              │
          │     ▼                              ▼
          │  ┌─────────────────┐    ┌─────────────────┐
-         │  │ AI Server 1     │    │ AI Server 2     │
-         │  │ (Disabled)      │    │ (Enabled)       │
+         │  │ AI Server 1     │    │ AI Server N     │
+         │  │ (e.g. Disabled) │... │ (e.g. Enabled)  │
          │  │                 │    │                 │
          │  │ Ollama API      │    │ Ollama API      │
          │  │ Agent API       │    │ Agent API       │
@@ -270,7 +269,7 @@ User clicks "Start Benchmark"
                             ▼
                    ┌─────────────────┐
                    │ 7. Aggregator   │
-                   │ - Compare S1/S2 │
+                   │ - Compare N srv │
                    │ - Calculate Δ%  │
                    │ - Determine     │
                    │   winner        │
@@ -365,8 +364,8 @@ User clicks "Start Benchmark"
      Port 11434, 9100                  Port 11434, 9100
               │                                 │
    ┌──────────▼───────────┐        ┌───────────▼──────────┐
-   │   AI Server 1        │        │   AI Server 2        │
-   │   IP: 35.186.159.250 │        │   IP: 34.142.222.133 │
+   │   AI Server 1        │        │   AI Server N        │
+   │   IP: 35.186.159.250 │  ...   │   IP: X.X.X.X        │
    │                      │        │                      │
    │   Ollama :11434      │        │   Ollama :11434      │
    │   Agent  :9100       │        │   Agent  :9100       │
@@ -376,12 +375,10 @@ User clicks "Start Benchmark"
 
    Firewall Rules:
    ┌─────────────────────────────────────────────────────┐
-   │  Controller → Server1:11434  (Ollama API)   ALLOW   │
-   │  Controller → Server1:9100   (Agent API)    ALLOW   │
-   │  Controller → Server2:11434  (Ollama API)   ALLOW   │
-   │  Controller → Server2:9100   (Agent API)    ALLOW   │
-   │  User → Controller:8000      (Web UI)       ALLOW   │
-   │  * → *                       (Others)       DENY    │
+   │  Controller → Server[X]:11434 (Ollama API)  ALLOW   │
+   │  Controller → Server[X]:9100  (Agent API)   ALLOW   │
+   │  User → Controller:8000       (Web UI)      ALLOW   │
+   │  * → *                        (Others)      DENY    │
    └─────────────────────────────────────────────────────┘
 ```
 
@@ -395,16 +392,16 @@ User clicks "Start Benchmark"
 ┌─────────────────────┐       ┌─────────────────────┐
 │   server_profiles   │       │   benchmark_runs    │
 ├─────────────────────┤       ├─────────────────────┤
-│ PK server_id        │       │ PK id               │
-│    name             │       │ UK run_id           │
-│    description      │       │    status           │
-│    aidaptive_enabled│       │    started_at       │
-│    created_at       │       │    finished_at      │
-└─────────────────────┘       │    duration_seconds │
-                              │    suite            │
-                              │    environment      │
-                              │    model            │
-                              │    config_snapshot  │
+│ PK id               │       │ PK id               │
+│ UK server_id        │       │ UK run_id           │
+│    name             │       │    status           │
+│    ip_address       │       │    started_at       │
+│    gpu_name         │       │    finished_at      │
+│    cpu_model        │       │    duration_seconds │
+│    ram_total_gb     │       │    suite            │
+│    status           │       │    environment      │
+│    recorded_at      │       │    model            │
+└─────────────────────┘       │    config_snapshot  │
                               │    notes            │
                               │    tags             │
                               │    total_tests      │
@@ -600,33 +597,29 @@ CREATE INDEX idx_comparisons_run_id ON server_comparisons(run_id);
 ```sql
 CREATE TABLE server_profiles (
     id SERIAL PRIMARY KEY,
-    server_id VARCHAR(50) UNIQUE NOT NULL,  -- server1, server2
+    server_id VARCHAR(50) UNIQUE NOT NULL,  -- usually IP
     
     -- Display
-    name VARCHAR(100),
+    name VARCHAR(200),
     description TEXT,
-    
-    -- Config
-    ollama_url VARCHAR(255),
-    agent_url VARCHAR(255),
-    aidaptive_enabled BOOLEAN DEFAULT FALSE,
+    ip_address VARCHAR(50),
     
     -- Auto-detected hardware (updated by agent)
-    gpu_name VARCHAR(100),
-    gpu_vram_gb FLOAT,
-    gpu_driver VARCHAR(50),
-    cpu_name VARCHAR(100),
+    gpu_name VARCHAR(200),
+    gpu_count INTEGER,
+    vram_total_gb FLOAT,
+    cpu_model VARCHAR(200),
     cpu_cores INTEGER,
     ram_total_gb FLOAT,
-    hostname VARCHAR(100),
-    os_version VARCHAR(100),
     
     -- Status
-    last_seen_at TIMESTAMP,
-    is_online BOOLEAN DEFAULT FALSE,
+    status VARCHAR(50),
+    ollama_version VARCHAR(50),
+    models_available JSONB,
+    aidaptive_version VARCHAR(50),
+    aidaptive_firmware VARCHAR(50),
     
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -738,7 +731,7 @@ ON CONFLICT (server_id) DO NOTHING;
 ```json
 {
   "suite": "single_request",
-  "server": "all",
+  "servers": ["192.168.1.100", "192.168.1.101"],
   "environment": "lan",
   "notes": "Test run description",
   "tags": ["production", "v1.0"]

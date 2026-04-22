@@ -8,10 +8,10 @@
 
 ## 2. Business Logic & Context (The "Why")
 
-The **Benchmark AI Server System** is designed to compare LLM inference performance between two distinct configurations:
+The **Benchmark AI Server System** is designed to compare LLM inference performance across multiple, dynamically configured environments:
 
-- **Server 1 (S1):** aiDaptive+ **DISABLED** (Baseline - Raw hardware performance).
-- **Server 2 (S2):** aiDaptive+ **ENABLED** (Optimized - Goal is to prove performance gains).
+- **Dynamic Servers:** Users can add unlimited servers via the Server Management UI, allowing multi-way comparison (e.g. up to 3 servers concurrently).
+- **Core Goal:** To benchmark raw hardware performance vs optimized configurations (like aiDaptive+) and establish clear, empirical performance gains.
 
 ### 2.1 Core Metrics
 | Metric | Full Name | Description |
@@ -26,16 +26,16 @@ The **Benchmark AI Server System** is designed to compare LLM inference performa
 ### 2.2 Main Features
 - **Server Monitoring:** Auto-scans hardware (GPU, CPU, VRAM) via remote agents.
 - **Multi-tool Benchmark:** Supports 7 tools (Ollama, Oha, K6, Locust, LLMPerf, vLLM, LiteLLM).
-- **Automated Comparison:** Calculates Δ% (Delta) between S1 and S2 to determine the winner.
+- **Automated Comparison:** Calculates Δ% (Delta) between servers to determine the winner.
 - **Reporting:** Generates real-time charts (Chart.js) and downloadable PDF/CSV reports.
 
 ---
 
 ## 3. System Configuration (`benchmark.yaml`)
 
-The system's behavior is entirely driven by `benchmark.yaml`. Key sections include:
+The system's behavior is driven by `benchmark.yaml` (for static configs like environments/models) and the **PostgreSQL Database** (for dynamic Server Profiles). Key sections include:
 
-- **`servers`:** Defines `server1` and `server2` with their Ollama and Agent URLs.
+- **`servers`:** (Migrated to DB) Managed via the Web UI (`server_profiles` table). Supports IP-based resolution and hardware auto-discovery.
 - **`models`:** List of LLM models available for benchmarking (e.g., `llama3.2:latest`).
 - **`benchmark.test_suites`:** 
     - `single_request`: Measures per-request latency across scenarios (chat, code, etc.).
@@ -53,7 +53,7 @@ The frontend uses **Jinja2** templates with **Tailwind CSS**. All templates exte
 |:---|:---|
 | `base.html` | Core layout, navigation, and global JS/CSS dependencies. |
 | `dashboard.html` | Main overview with recent runs, total stats, and TPS trends. |
-| `servers.html` | Real-time status and hardware details for S1 and S2. |
+| `servers.html` | Data Table for CRUD operations on dynamic Server Profiles. |
 | `benchmark.html` | Form to configure and start a new benchmark run. |
 | `history.html` | Paginated list of all past benchmark runs. |
 | `run_detail.html` | Detailed results for a specific run, including comparison tables and Chart.js visualizations. |
@@ -150,6 +150,12 @@ erDiagram
     BenchmarkRun ||--o{ BenchmarkResultRow : "has"
     BenchmarkRun ||--o{ HardwareSnapshot : "monitors"
     BenchmarkRun ||--o{ ServerComparison : "analyzes"
+    ServerProfile {
+        int id PK
+        string ip_address UK
+        string name
+        json hardware_details
+    }
 ```
 
 ## 12. Core Business Flows

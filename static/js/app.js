@@ -191,14 +191,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 // Update inline history progress bars if they exist
                 if (data.run_id) {
-                    const rowBar = document.querySelector(`.run-progress-bar[data-run-id="${data.run_id}"]`);
-                    if (rowBar) rowBar.style.width = `${data.percent || 0}%`;
+                    document.querySelectorAll(`.run-progress-bar[data-run-id="${data.run_id}"]`).forEach(el => {
+                        el.style.width = `${data.percent || 0}%`;
+                    });
                     
-                    const rowText = document.querySelector(`.run-progress-text[data-run-id="${data.run_id}"]`);
-                    if (rowText) rowText.textContent = `${data.completed_tests || 0} / ${data.total_tests || 0}`;
+                    document.querySelectorAll(`.run-progress-text[data-run-id="${data.run_id}"]`).forEach(el => {
+                        el.textContent = `${data.completed_tests || 0} / ${data.total_tests || 0}`;
+                    });
                     
-                    const rowPct = document.querySelector(`.run-progress-pct[data-run-id="${data.run_id}"]`);
-                    if (rowPct) rowPct.textContent = `${data.percent || 0}%`;
+                    document.querySelectorAll(`.run-progress-pct[data-run-id="${data.run_id}"]`).forEach(el => {
+                        el.textContent = `${data.percent || 0}%`;
+                    });
                 }
 
                 // Disable start button if present
@@ -257,9 +260,77 @@ document.addEventListener("DOMContentLoaded", function() {
 // --------------------------------------------------
 // Benchmark control
 // --------------------------------------------------
+async function onServerSelectChange(index) {
+    const select = document.getElementById(`server-select-${index}`);
+    const serverId = select.value;
+    const card = document.getElementById(`specs-card-${index}`);
+    
+    if (!serverId) {
+        card.classList.add('hidden');
+        card.innerHTML = '';
+        // Disable subsequent dropdowns
+        if (index === 1) {
+            document.getElementById('server-select-2').value = '';
+            document.getElementById('server-select-2').disabled = true;
+            document.getElementById('server-block-2').classList.add('opacity-50');
+            onServerSelectChange(2);
+        }
+        if (index === 2) {
+            document.getElementById('server-select-3').value = '';
+            document.getElementById('server-select-3').disabled = true;
+            document.getElementById('server-block-3').classList.add('opacity-50');
+            onServerSelectChange(3);
+        }
+        return;
+    }
+    
+    // Enable next dropdown
+    if (index === 1) {
+        document.getElementById('server-select-2').disabled = false;
+        document.getElementById('server-block-2').classList.remove('opacity-50');
+    } else if (index === 2) {
+        document.getElementById('server-select-3').disabled = false;
+        document.getElementById('server-block-3').classList.remove('opacity-50');
+    }
+    
+    // Fetch specs
+    card.classList.remove('hidden');
+    card.innerHTML = `<div class="text-slate-400 italic">Fetching specs...</div>`;
+    
+    try {
+        const resp = await fetch(`/api/servers/${serverId}/specs`);
+        if (!resp.ok) throw new Error("Failed");
+        const data = await resp.json();
+        const specs = data.specs || {};
+        
+        card.innerHTML = `
+            <div class="grid grid-cols-2 gap-2">
+                <div class="text-slate-500">CPU:</div><div class="font-mono text-slate-800">${specs.cpu_model || '--'} (${specs.cpu_cores || '?'} cores)</div>
+                <div class="text-slate-500">RAM:</div><div class="font-mono text-slate-800">${specs.ram_gb || '--'} GB</div>
+                <div class="text-slate-500">SSD:</div><div class="font-mono text-slate-800">${specs.ssd_total || '--'}</div>
+                <div class="text-slate-500">GPU:</div><div class="font-mono text-slate-800">${specs.gpu_name || 'None'}</div>
+            </div>
+        `;
+    } catch (e) {
+        card.innerHTML = `<div class="text-red-400 italic">Could not fetch specs. Is the agent running?</div>`;
+    }
+}
+
 async function startBenchmark() {
     const suite = document.getElementById("bench-suite")?.value || "all";
-    const server = document.getElementById("bench-server")?.value || "all";
+    
+    // Get selected servers from dropdowns
+    const servers = [];
+    [1, 2, 3].forEach(i => {
+        const val = document.getElementById(`server-select-${i}`)?.value;
+        if (val) servers.push(val);
+    });
+    
+    if (servers.length === 0) {
+        showNotification(t("js.select_one_server"), "error");
+        return;
+    }
+
     const env = document.getElementById("bench-env")?.value || "lan";
     const notes = document.getElementById("bench-notes")?.value || "";
     
@@ -269,9 +340,9 @@ async function startBenchmark() {
     
     const advancedOptions = {
         warmup_requests: parseInt(document.getElementById("bench-warmup")?.value) || 3,
-        repeat_count: parseInt(document.getElementById("bench-repeat")?.value) || 1,
+        repeat_count: 1, // Fixed globally
         concurrency_levels: document.getElementById("bench-concurrency")?.value || "1, 5, 10, 25, 50",
-        request_timeout_seconds: parseInt(document.getElementById("bench-timeout")?.value) || 120,
+        request_timeout_seconds: 120, // Fixed globally
         cooldown_seconds: parseInt(document.getElementById("bench-cooldown")?.value) || 10
     };
 
@@ -286,18 +357,7 @@ async function startBenchmark() {
     }
 
     try {
-        const payload = { suite, server, environment: env, notes, tags, advanced_options: advancedOptions };
-        if (server === "custom") {
-            if (!discoveredServerConfig) {
-                showNotification(t("js.discover_first"), "error");
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = t("benchmark.start_button");
-                }
-                return;
-            }
-            payload.custom_server = discoveredServerConfig;
-        }
+        const payload = { suite, servers, environment: env, notes, tags, advanced_options: advancedOptions };
 
         const resp = await fetch("/api/benchmark/start", {
             method: "POST",
@@ -310,95 +370,25 @@ async function startBenchmark() {
         if (data.run_id) {
             showNotification(data.message || `Benchmark started: ${data.run_id}`);
             pollProgress(data.run_id);
+            // DO NOT UNLOCK BUTTON HERE. Let global poll handle it.
         } else if (data.error) {
             showNotification(data.error, "error");
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = t("benchmark.start_button");
+            }
         }
 
     } catch (e) {
         showNotification(t("js.failed_to_start"), "error");
-    }
-
-    if (btn) {
-        btn.disabled = false;
-        btn.textContent = t("benchmark.start_button");
-    }
-}
-
-async function discoverServerConfig() {
-    const ip = document.getElementById("discover-server-ip")?.value?.trim() || "";
-    const btn = document.getElementById("btn-discover-server");
-
-    if (!ip) {
-        showNotification(t("js.enter_server_ip"), "error");
-        return;
-    }
-
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = t("js.discovering");
-    }
-
-    try {
-        const resp = await fetch("/api/server/discover", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ip }),
-        });
-        const data = await resp.json();
-
-        if (!resp.ok) {
-            throw new Error(data.error || t("js.discovery_failed"));
-        }
-
-        discoveredServerConfig = data.server;
-        renderDiscoveredServer(data.server);
-
-        const serverSelect = document.getElementById("bench-server");
-        if (serverSelect) {
-            serverSelect.value = "custom";
-        }
-
-        showNotification(t("js.discovered_server_toast", { name: data.server.name }));
-    } catch (e) {
-        showNotification(e.message || t("js.failed_to_discover"), "error");
-    } finally {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = t("benchmark.discover_button");
+            btn.textContent = t("benchmark.start_button");
         }
     }
 }
 
-function renderDiscoveredServer(server) {
-    const result = document.getElementById("discover-server-result");
-    const errors = document.getElementById("discover-server-errors");
 
-    if (result) {
-        result.classList.remove("hidden");
-    }
-
-    setText("discover-server-name", server.name || `${t("benchmark.discovered_server")} (${server.ip})`);
-    setText("discover-server-sources", t("js.sources_label", { sources: (server.discovery_sources || []).join(", ") || "--" }));
-    setText("discover-agent-url", server.agent_url || "--");
-    setText("discover-ollama-url", server.ollama_url || "--");
-    setText("discover-gpu-name", server.gpu_name || "--");
-    setText("discover-vram", server.vram_total_gb ? `${server.vram_total_gb} GB` : "--");
-    setText("discover-cpu-model", server.cpu_model || "--");
-    setText("discover-cpu-cores", server.cpu_cores || "--");
-    setText("discover-ram", server.ram_total_gb ? `${server.ram_total_gb} GB` : "--");
-    setText("discover-models", (server.models_available || []).join(", ") || "--");
-
-    if (errors) {
-        const messages = server.errors || [];
-        if (messages.length > 0) {
-            errors.classList.remove("hidden");
-            errors.textContent = messages.join(" | ");
-        } else {
-            errors.classList.add("hidden");
-            errors.textContent = "";
-        }
-    }
-}
 
 function setText(id, value) {
     const el = document.getElementById(id);

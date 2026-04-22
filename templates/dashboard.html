@@ -51,29 +51,29 @@
 
     <!-- Server Status Cards -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {% for server_id, server in config.servers.items() %}
+        {% for status in statuses[:3] %}
         <div class="card">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <div class="card-header mb-0">{{ server.name }}</div>
-                    <p class="text-xs text-slate-500 mt-1">{{ server.description }}</p>
+                    <div class="card-header mb-0">{{ status.server_name }}</div>
+                    <p class="text-xs text-slate-500 mt-1">{{ status.server_id }}</p>
                 </div>
-                <span class="status-dot status-offline" id="status-{{ server_id }}"></span>
+                <span class="status-dot {% if status.ollama_online and status.agent_online %}status-online{% else %}status-offline{% endif %}" id="status-{{ status.server_id }}"></span>
             </div>
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <div class="metric-value text-lg" id="{{ server_id }}-gpu">--</div>
+                    <div class="metric-value text-lg" id="{{ status.server_id }}-gpu">--</div>
                     <div class="metric-label">{{ t("dashboard.gpu_util") }}</div>
                 </div>
                 <div>
-                    <div class="metric-value text-lg" id="{{ server_id }}-vram">--</div>
+                    <div class="metric-value text-lg" id="{{ status.server_id }}-vram">
+                        {% if status.vram_total_gb %}{{ "%.1f"|format(status.vram_total_gb) }} GB{% else %}--{% endif %}
+                    </div>
                     <div class="metric-label">{{ t("dashboard.vram_used") }}</div>
                 </div>
                 <div>
-                    <div class="metric-value text-lg" id="{{ server_id }}-cost">
-                        ${{ "{:,.0f}".format(server.hardware_cost_usd) }}
-                    </div>
-                    <div class="metric-label">{{ t("dashboard.hardware_cost") }}</div>
+                    <div class="metric-value text-lg" id="{{ status.server_id }}-cpu">--</div>
+                    <div class="metric-label">CPU Util</div>
                 </div>
             </div>
         </div>
@@ -202,6 +202,38 @@
                 }
             }
         });
+    })();
+
+    // Poll Hardware Metrics for active cards
+    (function () {
+        const serverCards = document.querySelectorAll('[id$="-gpu"]');
+        const serverIds = Array.from(serverCards).map(el => el.id.replace("-gpu", ""));
+        
+        async function pollMetrics() {
+            for (const id of serverIds) {
+                try {
+                    const resp = await fetch(`/api/servers/${id}/metrics`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        const m = data.metrics;
+                        const gpuEl = document.getElementById(`${id}-gpu`);
+                        const vramEl = document.getElementById(`${id}-vram`);
+                        const cpuEl = document.getElementById(`${id}-cpu`);
+                        
+                        if (gpuEl && m.gpu_util_pct != null) gpuEl.textContent = `${m.gpu_util_pct.toFixed(1)}%`;
+                        if (vramEl && m.vram_used_gb != null) vramEl.textContent = `${m.vram_used_gb.toFixed(1)} GB`;
+                        if (cpuEl && m.cpu_pct != null) cpuEl.textContent = `${m.cpu_pct.toFixed(1)}%`;
+                    }
+                } catch (e) {
+                    // silently ignore
+                }
+            }
+        }
+        
+        if (serverIds.length > 0) {
+            pollMetrics();
+            setInterval(pollMetrics, 5000);
+        }
     })();
 </script>
 {% endblock %}

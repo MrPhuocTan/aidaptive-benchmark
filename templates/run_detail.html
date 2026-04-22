@@ -50,7 +50,7 @@
         </div>
         <div class="card text-center">
             <div class="card-header">{{ t("history.tests") }}</div>
-            <div class="text-lg font-semibold text-slate-900">
+            <div class="text-lg font-semibold text-slate-900 run-progress-text" data-run-id="{{ run.run_id }}">
                 {{ run.completed_tests or 0 }} / {{ run.total_tests or 0 }}
             </div>
         </div>
@@ -149,10 +149,25 @@
                 <canvas id="comparison-chart"></canvas>
             </div>
         </div>
-        <div class="card">
+        <div class="card lg:col-span-2">
             <div class="card-header">{{ t("run_detail.hardware_timeline") }}</div>
-            <div class="h-80">
-                <canvas id="timeline-chart"></canvas>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-700 mb-2">GPU Utilization (%)</h4>
+                    <div class="h-60"><canvas id="timeline-chart-gpu"></canvas></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-700 mb-2">CPU Utilization (%)</h4>
+                    <div class="h-60"><canvas id="timeline-chart-cpu"></canvas></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-700 mb-2">RAM Usage (GB)</h4>
+                    <div class="h-60"><canvas id="timeline-chart-ram"></canvas></div>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-700 mb-2">Disk Read/Write (MB/s)</h4>
+                    <div class="h-60"><canvas id="timeline-chart-disk"></canvas></div>
+                </div>
             </div>
         </div>
     </div>
@@ -270,48 +285,98 @@
             });
         }
 
-        const timelineCanvas = document.getElementById("timeline-chart");
-        if (timelineCanvas && timelineData && Object.keys(timelineData).length > 0) {
-            const datasets = [];
-            Object.entries(timelineData).forEach(([serverId, payload]) => {
-                datasets.push({
-                    label: `${serverId} GPU %`,
-                    data: payload.timestamps.map((ts, index) => ({ x: ts, y: payload.gpu_util_pct[index] })),
-                    borderColor: serverId === "server2" ? "#a855f7" : "#9ca3af",
+        if (timelineData && Object.keys(timelineData).length > 0) {
+            const servers = Object.keys(timelineData).filter(k => k !== "timestamps");
+            const colors = ["#a855f7", "#9ca3af", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+            
+            // Shared options for all timeline charts
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: false,
+                plugins: { legend: { labels: { color: "#475569", boxWidth: 12, padding: 8 } } },
+                scales: {
+                    x: {
+                        type: "category",
+                        ticks: {
+                            color: "#64748b",
+                            maxTicksLimit: 10,
+                            callback: function(value) {
+                                const label = this.getLabelForValue(value);
+                                return label ? label.slice(11, 19) : "";
+                            }
+                        },
+                        grid: { color: "rgba(148,163,184,0.18)" }
+                    },
+                    y: { ticks: { color: "#64748b" }, grid: { color: "rgba(148,163,184,0.18)" } }
+                }
+            };
+
+            function createChart(canvasId, datasets) {
+                const canvas = document.getElementById(canvasId);
+                if (canvas) {
+                    new Chart(canvas, { type: "line", data: { datasets }, options: commonOptions });
+                }
+            }
+
+            // 1. GPU Chart
+            createChart("timeline-chart-gpu", servers.map((srv, i) => ({
+                label: `${srv}`,
+                data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].gpu_util_pct[idx] })),
+                borderColor: colors[i % colors.length],
+                backgroundColor: "transparent",
+                tension: 0.2,
+                borderWidth: 2,
+                pointRadius: 0
+            })));
+
+            // 2. CPU Chart
+            createChart("timeline-chart-cpu", servers.map((srv, i) => ({
+                label: `${srv}`,
+                data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].cpu_pct[idx] })),
+                borderColor: colors[i % colors.length],
+                backgroundColor: "transparent",
+                tension: 0.2,
+                borderWidth: 2,
+                pointRadius: 0
+            })));
+
+            // 3. RAM Chart
+            createChart("timeline-chart-ram", servers.map((srv, i) => ({
+                label: `${srv}`,
+                data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].ram_used_gb[idx] })),
+                borderColor: colors[i % colors.length],
+                backgroundColor: "transparent",
+                tension: 0.2,
+                borderWidth: 2,
+                pointRadius: 0
+            })));
+
+            // 4. Disk Chart (Read/Write Combined)
+            const diskDatasets = [];
+            servers.forEach((srv, i) => {
+                const c = colors[i % colors.length];
+                diskDatasets.push({
+                    label: `${srv} (Read)`,
+                    data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_read_mbps[idx] })),
+                    borderColor: c,
                     backgroundColor: "transparent",
                     tension: 0.2,
+                    borderWidth: 2,
+                    pointRadius: 0
+                });
+                diskDatasets.push({
+                    label: `${srv} (Write)`,
+                    data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_write_mbps[idx] })),
+                    borderColor: c,
+                    borderDash: [5, 5],
+                    backgroundColor: "transparent",
+                    tension: 0.2,
+                    borderWidth: 2,
+                    pointRadius: 0
                 });
             });
-
-            new Chart(timelineCanvas, {
-                type: "line",
-                data: { datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    parsing: false,
-                    plugins: {
-                        legend: { labels: { color: "#475569" } }
-                    },
-                    scales: {
-                        x: {
-                            type: "category",
-                            ticks: {
-                                color: "#64748b",
-                                callback: function(value) {
-                                    const label = this.getLabelForValue(value);
-                                    return label ? label.slice(11, 19) : "";
-                                }
-                            },
-                            grid: { color: "rgba(148,163,184,0.18)" }
-                        },
-                        y: {
-                            ticks: { color: "#64748b" },
-                            grid: { color: "rgba(148,163,184,0.18)" }
-                        }
-                    }
-                }
-            });
+            createChart("timeline-chart-disk", diskDatasets);
         }
     })();
 </script>

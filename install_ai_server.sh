@@ -196,19 +196,19 @@ async def system_metrics():
     """Get CPU/RAM metrics"""
     try:
         # CPU Usage
-        cpu_output = run_cmd("top -bn1 | grep 'Cpu(s)' | awk '{print \$2}'")
+        cpu_output = run_cmd("top -bn1 | grep 'Cpu(s)' | awk '{print $2}'")
         cpu_pct = float(cpu_output) if cpu_output else 0
         
         # Memory
-        mem_output = run_cmd("free -m | awk 'NR==2{printf \"%s %s %s\", \$2, \$3, \$4}'")
+        mem_output = run_cmd("free -m | awk 'NR==2{printf \"%s %s %s\", $2, $3, $4}'")
         mem_parts = mem_output.split() if mem_output else ["0", "0", "0"]
         
         # Load average
-        load_output = run_cmd("cat /proc/loadavg | awk '{print \$1, \$2, \$3}'")
+        load_output = run_cmd("cat /proc/loadavg | awk '{print $1, $2, $3}'")
         load_parts = load_output.split() if load_output else ["0", "0", "0"]
         
         # Disk
-        disk_output = run_cmd("df -h / | awk 'NR==2{print \$2, \$3, \$5}'")
+        disk_output = run_cmd("df -h / | awk 'NR==2{print $2, $3, $5}'")
         disk_parts = disk_output.split() if disk_output else ["0", "0", "0%"]
         
         return {
@@ -250,6 +250,16 @@ async def server_info():
     kernel = run_cmd("uname -r") or "unknown"
     uptime = run_cmd("uptime -p") or "unknown"
     
+    # CPU info
+    cpu_model = run_cmd("lscpu | grep 'Model name' | cut -f 2 -d ':' | awk '{$1=$1}1'") or "Unknown CPU"
+    cpu_cores = run_cmd("nproc") or "0"
+    
+    # RAM info
+    ram_total = run_cmd("free -g | awk 'NR==2{print $2}'") or "0"
+    
+    # Disk info
+    ssd_total = run_cmd("df -h / | awk 'NR==2{print $2}'") or "0"
+    
     # GPU info
     gpu_name = run_cmd("nvidia-smi --query-gpu=name --format=csv,noheader") or "No GPU"
     gpu_driver = run_cmd("nvidia-smi --query-gpu=driver_version --format=csv,noheader") or "N/A"
@@ -258,8 +268,12 @@ async def server_info():
         "hostname": hostname,
         "kernel": kernel,
         "uptime": uptime,
-        "gpu_name": gpu_name.split("\n")[0] if gpu_name else "No GPU",
-        "gpu_driver": gpu_driver.split("\n")[0] if gpu_driver else "N/A",
+        "cpu_model": cpu_model,
+        "cpu_cores": cpu_cores,
+        "ram_gb": ram_total,
+        "ssd_total": ssd_total,
+        "gpu_name": gpu_name.split("\\n")[0] if gpu_name else "No GPU",
+        "gpu_driver": gpu_driver.split("\\n")[0] if gpu_driver else "N/A",
     }
 
 if __name__ == "__main__":
@@ -304,7 +318,7 @@ SERVICE_EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable aidaptive-agent
-sudo systemctl start aidaptive-agent
+sudo systemctl restart aidaptive-agent
 print_success "Agent service created and started"
 
 # ----------------------------------------------
@@ -358,7 +372,7 @@ else
 fi
 
 # Get server IP
-SERVER_IP=$(hostname -I | awk '{print \$1}')
+SERVER_IP=$(hostname -I | awk '{print $1}')
 
 echo ""
 echo "=============================================="

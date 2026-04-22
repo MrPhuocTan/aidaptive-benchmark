@@ -117,8 +117,7 @@ async def _build_server_payload(server_id: str, server_cfg) -> dict:
         },
         "agent_url": server_cfg.agent_url,
         "ollama_url": server_cfg.ollama_url,
-        "hardware_cost_usd": server_cfg.hardware_cost_usd,
-        "monthly_power_usd": server_cfg.monthly_power_usd,
+        "ip_address": getattr(server_cfg, 'ip_address', None) or server_id,
     }
 
 
@@ -216,6 +215,38 @@ async def startup():
         run_seed(database)
         print("  Database tables created and seeded.")
         
+        async with database.AsyncSession() as session:
+            from sqlalchemy import text
+            from sqlalchemy.future import select
+            from src.database.tables import ServerProfile
+            from src.config import ServerConfig
+            try:
+                await session.execute(text("ALTER TABLE server_profiles ADD COLUMN ip_address VARCHAR(50);"))
+                await session.execute(text("ALTER TABLE server_profiles ADD COLUMN status VARCHAR(50);"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                
+            result = await session.execute(select(ServerProfile))
+            profiles = result.scalars().all()
+            config.servers.clear()
+            for p in profiles:
+                if p.ip_address:
+                    config.servers[p.server_id] = ServerConfig(
+                        name=p.name or p.server_id,
+                        description=p.description or "",
+                        ollama_url=f"http://{p.ip_address}:11434",
+                        agent_url=f"http://{p.ip_address}:9100",
+                    )
+                else:
+                    # Fallback for old records without ip_address
+                    config.servers[p.server_id] = ServerConfig(
+                        name=p.name or p.server_id,
+                        description=p.description or "",
+                        ollama_url="",
+                        agent_url="",
+                    )
+        
         from src.background import sync_server_profiles_loop
         asyncio.create_task(sync_server_profiles_loop(config, database))
         
@@ -286,6 +317,19 @@ async def page_dashboard(request: Request, session: AsyncSession = Depends(get_d
         except SQLAlchemyError:
             db_ok = False
 
+    statuses = []
+    async def fetch_status(server_id, server_cfg):
+        client = AgentClient(
+            agent_url=server_cfg.agent_url,
+            ollama_url=server_cfg.ollama_url,
+            server_id=server_id,
+            timeout=1.0,
+        )
+        return await client.get_server_status(server_cfg.name)
+
+    tasks = [fetch_status(sid, cfg) for sid, cfg in config.servers.items()]
+    statuses = await asyncio.gather(*tasks) if tasks else []
+
     return _render(
         request,
         "dashboard.html",
@@ -296,6 +340,7 @@ async def page_dashboard(request: Request, session: AsyncSession = Depends(get_d
             "total_runs": total_runs,
             "trend": trend,
             "db_available": db_ok,
+            "statuses": statuses,
             **(_db_warning_payload() if not db_ok else {}),
         },
     )
@@ -305,23 +350,35 @@ async def page_dashboard(request: Request, session: AsyncSession = Depends(get_d
 # Page: Servers
 # --------------------------------------------------
 @app.get("/servers", response_class=HTMLResponse)
-async def page_servers(request: Request):
-    statuses = []
-    for server_id, server_cfg in config.servers.items():
+async def page_servers(request: Request, session: AsyncSession = Depends(get_db)):
+    from sqlalchemy.future import select
+    from src.database.tables import ServerProfile
+    
+    result = await session.execute(select(ServerProfile).order_by(ServerProfile.recorded_at.desc()))
+    profiles = result.scalars().all()
+    
+    async def fetch_status(p):
         client = AgentClient(
-            agent_url=server_cfg.agent_url,
-            ollama_url=server_cfg.ollama_url,
-            server_id=server_id,
+            agent_url=f"http://{p.ip_address}:9100",
+            ollama_url=f"http://{p.ip_address}:11434",
+            server_id=p.server_id,
+            timeout=1.0,
         )
-        status = await client.get_server_status(server_cfg.name)
-        statuses.append(status)
+        status = await client.get_server_status(p.name)
+        return {
+            "profile": p,
+            "status": status,
+        }
+
+    tasks = [fetch_status(p) for p in profiles]
+    servers_data = await asyncio.gather(*tasks) if tasks else []
 
     return _render(
         request,
         "servers.html",
         {
             "page": "servers",
-            "statuses": statuses,
+            "servers_data": servers_data,
             "config": config,
         },
     )
@@ -533,6 +590,25 @@ async def api_health():
 
 
 # --------------------------------------------------
+# API: Server Specs
+# --------------------------------------------------
+@app.get("/api/servers/{server_id}/specs")
+async def api_server_specs(server_id: str):
+    if server_id not in config.servers:
+        return JSONResponse({"error": "Server not found"}, status_code=404)
+        
+    server_cfg = config.servers[server_id]
+    client = AgentClient(
+        agent_url=server_cfg.agent_url,
+        ollama_url=server_cfg.ollama_url,
+        server_id=server_id,
+        timeout=3.0,
+    )
+    
+    specs = await client.get_server_specs()
+    return {"specs": specs}
+
+# --------------------------------------------------
 # API: Start benchmark
 # --------------------------------------------------
 @app.post("/api/benchmark/start")
@@ -547,23 +623,10 @@ async def api_benchmark_start(request: Request):
 
     body = await request.json()
     suite = body.get("suite", "all")
-    server = body.get("server", "all")
+    servers = body.get("servers", [])
     environment = body.get("environment", "lan")
     notes = body.get("notes", "")
     tags = body.get("tags", [])
-    custom_server = body.get("custom_server")
-
-    if custom_server:
-        try:
-            ipaddress.ip_address((custom_server.get("ip") or "").strip())
-        except ValueError:
-            return JSONResponse(
-                {
-                    "error": "bad_request",
-                    "message": _t_for_request(request, "api.custom_server_ip_invalid"),
-                },
-                status_code=400,
-            )
 
     advanced_options = body.get("advanced_options")
     if advanced_options:
@@ -584,11 +647,10 @@ async def api_benchmark_start(request: Request):
         orchestrator.run_async(
             run_id=run_id,
             suite=suite,
-            server=server,
+            target_servers=servers,
             environment=environment,
             notes=notes,
             tags=tags,
-            custom_server=custom_server,
         )
     )
 
@@ -719,6 +781,97 @@ async def api_servers():
     for server_id, server_cfg in config.servers.items():
         payload.append(await _build_server_payload(server_id, server_cfg))
     return {"servers": payload}
+
+from pydantic import BaseModel
+
+class VerifyServerRequest(BaseModel):
+    ip: str
+
+@app.post("/api/servers/verify")
+async def api_verify_server(req: VerifyServerRequest):
+    ip = req.ip.strip()
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        return JSONResponse({"error": "Invalid IP address"}, status_code=400)
+    
+    client = AgentClient(
+        agent_url=f"http://{ip}:9100",
+        ollama_url=f"http://{ip}:11434",
+        server_id=ip,
+    )
+    
+    agent_ok = await client.check_agent_health()
+    ollama_ok = await client.check_ollama_health()
+    
+    return {
+        "ip": ip,
+        "agent_ok": agent_ok,
+        "ollama_ok": ollama_ok,
+    }
+
+class AddServerRequest(BaseModel):
+    ip: str
+    name: str
+
+@app.post("/api/servers")
+async def api_add_server(req: AddServerRequest, session: AsyncSession = Depends(get_db)):
+    ip = req.ip.strip()
+    name = req.name.strip()
+    try:
+        ipaddress.ip_address(ip)
+    except ValueError:
+        return JSONResponse({"error": "Invalid IP address"}, status_code=400)
+    
+    from src.database.tables import ServerProfile
+    from sqlalchemy.future import select
+    from src.config import ServerConfig
+    
+    # Check if exists
+    result = await session.execute(select(ServerProfile).filter_by(server_id=ip))
+    profile = result.scalars().first()
+    
+    if profile:
+        profile.name = name
+        profile.ip_address = ip
+    else:
+        profile = ServerProfile(
+            server_id=ip,
+            name=name,
+            ip_address=ip,
+            status="active"
+        )
+        session.add(profile)
+        
+    await session.commit()
+    
+    # Update memory
+    config.servers[ip] = ServerConfig(
+        name=name,
+        description="",
+        ollama_url=f"http://{ip}:11434",
+        agent_url=f"http://{ip}:9100",
+    )
+    
+    return {"status": "ok", "server": await _build_server_payload(ip, config.servers[ip])}
+
+@app.delete("/api/servers/{ip}")
+async def api_delete_server(ip: str, session: AsyncSession = Depends(get_db)):
+    from src.database.tables import ServerProfile
+    from sqlalchemy.future import select
+    
+    result = await session.execute(select(ServerProfile).filter_by(server_id=ip))
+    profile = result.scalars().first()
+    
+    if profile:
+        await session.delete(profile)
+        await session.commit()
+        
+    if ip in config.servers:
+        del config.servers[ip]
+        
+    return {"status": "ok"}
+
 
 
 @app.get("/api/servers/{server_id}/metrics")

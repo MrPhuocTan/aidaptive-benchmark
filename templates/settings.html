@@ -25,8 +25,6 @@
                     <th>{{ t("common.server") }}</th>
                     <th>Ollama URL</th>
                     <th>Agent URL</th>
-                    <th>{{ t("settings.hardware_cost") }}</th>
-                    <th>{{ t("settings.monthly_power") }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,8 +33,6 @@
                     <td class="font-medium">{{ server.name }}</td>
                     <td class="text-xs font-mono text-slate-500">{{ server.ollama_url }}</td>
                     <td class="text-xs font-mono text-slate-500">{{ server.agent_url }}</td>
-                    <td>${{ "{:,.0f}".format(server.hardware_cost_usd) }}</td>
-                    <td>${{ "{:,.0f}".format(server.monthly_power_usd) }}/mo</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -113,10 +109,7 @@
                 <span class="text-sm text-slate-500">InfluxDB</span>
                 <span class="text-xs font-mono text-slate-500">{{ config.influxdb.url }}</span>
             </div>
-            <div class="flex items-center justify-between py-2 border-b border-slate-200">
-                <span class="text-sm text-slate-500">Grafana</span>
-                <span class="text-xs font-mono text-slate-500">{{ config.grafana.url }}</span>
-            </div>
+
             <div class="flex items-center justify-between py-2 border-b border-slate-200">
                 <span class="text-sm text-slate-500">{{ t("settings.gpu_poll_interval") }}</span>
                 <span class="text-sm text-slate-700">{{ config.metrics.gpu_poll_interval_seconds }}s</span>

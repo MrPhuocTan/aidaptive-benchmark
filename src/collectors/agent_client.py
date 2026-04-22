@@ -58,10 +58,22 @@ class AgentClient:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.get(f"{target_url}/api/version")
                 if resp.status_code == 200:
-                    return resp.json().get("version", "unknown")
+                    data = resp.json()
+                    return data.get("version", "unknown")
         except Exception:
             pass
         return "unknown"
+
+    async def get_server_specs(self) -> dict:
+        """Fetches detailed hardware specs from the agent's /info endpoint."""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                resp = await client.get(f"{self.agent_url}/info")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+        return {}
 
     async def get_gpu_metrics(self) -> Optional[dict]:
         try:

@@ -188,3 +188,76 @@ def generate_concurrency_line_chart(
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
+
+from datetime import datetime
+
+def generate_timeline_chart(
+    data: dict,
+    output_path: str,
+    metric_key: str,
+    title: str,
+    ylabel: str,
+):
+    """
+    Generate timeline chart for hardware monitoring.
+    
+    data format:
+    {
+        "timestamps": ["2023-10-27T10:00:00", ...],
+        "server_ip_1": {
+            "gpu_util_pct": [10, 20, ...],
+            "cpu_pct": [5, 10, ...],
+            ...
+        },
+        ...
+    }
+    """
+    setup_style()
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    timestamps_str = data.get("timestamps", [])
+    if not timestamps_str:
+        # Generate empty chart
+        ax.set_title(title + " (No Data)", fontsize=14, fontweight="bold", pad=20)
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close()
+        return
+
+    try:
+        x = [datetime.fromisoformat(ts) if ts else None for ts in timestamps_str]
+    except Exception:
+        x = np.arange(len(timestamps_str))
+
+    # Predefined colors for dynamic servers
+    colors = [COLOR_SERVER1, COLOR_SERVER2, "#3b82f6", "#10b981", "#f59e0b", "#ef4444"]
+
+    color_idx = 0
+    for server_id, server_data in data.items():
+        if server_id == "timestamps":
+            continue
+        
+        y = server_data.get(metric_key, [])
+        if len(y) != len(x):
+            continue
+            
+        color = colors[color_idx % len(colors)]
+        color_idx += 1
+        
+        ax.plot(x, y, "-", color=color, linewidth=2, label=server_id)
+
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=14, fontweight="bold", pad=20)
+    
+    import matplotlib.dates as mdates
+    if isinstance(x[0], datetime):
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+        fig.autofmt_xdate()
+
+    ax.legend(facecolor="#ffffff", edgecolor=COLOR_GRID)
+    ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+

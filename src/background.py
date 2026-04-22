@@ -26,8 +26,6 @@ async def sync_server_profiles_loop(config, database):
                             "cpu_model": system_metrics.get("cpu_model"),
                             "cpu_cores": system_metrics.get("cpu_cores"),
                             "ram_total_gb": system_metrics.get("ram_total_gb"),
-                            "hardware_cost_usd": server_cfg.hardware_cost_usd,
-                            "monthly_power_usd": server_cfg.monthly_power_usd,
                             "ollama_version": status.ollama_version,
                             "models_available": status.models_loaded,
                         }

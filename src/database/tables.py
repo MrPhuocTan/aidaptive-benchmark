@@ -182,10 +182,6 @@ class ServerComparison(Base):
     delta_rps_pct = Column(Float, nullable=True)
     delta_p99_pct = Column(Float, nullable=True)
 
-    s1_cost_per_million_tokens = Column(Float, nullable=True)
-    s2_cost_per_million_tokens = Column(Float, nullable=True)
-    cost_savings_pct = Column(Float, nullable=True)
-
     overall_winner = Column(String(20), nullable=True)
 
     run = relationship("BenchmarkRun", back_populates="comparisons")
@@ -205,8 +201,8 @@ class ServerProfile(Base):
     cpu_model = Column(String(200), nullable=True)
     cpu_cores = Column(Integer, nullable=True)
     ram_total_gb = Column(Float, nullable=True)
-    hardware_cost_usd = Column(Float, nullable=True)
-    monthly_power_usd = Column(Float, nullable=True)
+    ip_address = Column(String(50), nullable=True)
+    status = Column(String(50), nullable=True)
     ollama_version = Column(String(50), nullable=True)
     models_available = Column(JSON, nullable=True)
     aidaptive_version = Column(String(50), nullable=True)

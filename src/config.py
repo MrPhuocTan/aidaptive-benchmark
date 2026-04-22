@@ -45,12 +45,6 @@ class InfluxDBConfig:
     bucket: str = "benchmarks"
 
 
-@dataclass
-class GrafanaConfig:
-    url: str = "http://localhost:3000"
-    admin_user: str = "admin"
-    admin_password: str = ""
-
 
 @dataclass
 class ServerConfig:
@@ -58,8 +52,6 @@ class ServerConfig:
     description: str = ""
     ollama_url: str = ""
     agent_url: str = ""
-    hardware_cost_usd: float = 0
-    monthly_power_usd: float = 0
 
 
 @dataclass
@@ -116,7 +108,6 @@ class Config:
     app: AppConfig = field(default_factory=AppConfig)
     postgres: PostgresConfig = field(default_factory=PostgresConfig)
     influxdb: InfluxDBConfig = field(default_factory=InfluxDBConfig)
-    grafana: GrafanaConfig = field(default_factory=GrafanaConfig)
     servers: dict = field(default_factory=dict)
     models: list = field(default_factory=list)
     environments: dict = field(default_factory=dict)
@@ -145,12 +136,10 @@ def load_config(path: str = "benchmark.yaml") -> Config:
     if "influxdb" in raw:
         cfg.influxdb = InfluxDBConfig(**raw["influxdb"])
 
-    if "grafana" in raw:
-        cfg.grafana = GrafanaConfig(**raw["grafana"])
 
     if "servers" in raw:
-        for key, val in raw["servers"].items():
-            cfg.servers[key] = ServerConfig(**val)
+        # Ignore servers from YAML, we will load from DB
+        pass
 
     cfg.models = raw.get("models", ["llama3:8b"])
 

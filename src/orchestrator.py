@@ -464,11 +464,10 @@ class Orchestrator:
         self,
         run_id: str,
         suite: str = "all",
-        server: str = "all",
+        target_servers: list[str] = None,
         environment: str = "lan",
         notes: str = "",
-        tags: list = None,
-        custom_server: dict = None,
+        tags: list[str] = None,
         resume_from_db: bool = False,
     ):
         """Run benchmark asynchronously"""
@@ -502,7 +501,7 @@ class Orchestrator:
                     model=",".join(self.config.models),
                     config_snapshot={
                         "suite": suite,
-                        "server": server,
+                        "servers": target_servers,
                         "environment": environment,
                     },
                     notes=notes,
@@ -520,29 +519,15 @@ class Orchestrator:
 
                 runtime_servers = dict(self.config.servers)
                 runtime_agent_clients = dict(self.agent_clients)
-                runtime_targets = {}
-
-                if custom_server:
-                    custom_server_id = custom_server.get("server_id", "custom")
-                    runtime_servers[custom_server_id] = ServerConfig(
-                        name=custom_server.get("name", f"Custom Server ({custom_server_id})"),
-                        description=custom_server.get("description", "Discovered from Benchmark UI"),
-                        ollama_url=custom_server.get("ollama_url", ""),
-                        agent_url=custom_server.get("agent_url", ""),
-                        hardware_cost_usd=custom_server.get("hardware_cost_usd", 0),
-                        monthly_power_usd=custom_server.get("monthly_power_usd", 0),
-                    )
-                    runtime_agent_clients[custom_server_id] = AgentClient(
-                        agent_url=custom_server.get("agent_url", ""),
-                        ollama_url=custom_server.get("ollama_url", ""),
-                        server_id=custom_server_id,
-                    )
-                    runtime_targets[custom_server_id] = custom_server.get("ollama_url", "")
-                    servers_to_test = [custom_server_id]
+                
+                # Default to all if empty
+                if not target_servers:
+                    servers_to_test = list(self.config.servers.keys())
                 else:
-                    servers_to_test = (
-                        list(self.config.servers.keys()) if server == "all" else [server]
-                    )
+                    # Filter valid ones
+                    servers_to_test = [s for s in target_servers if s in runtime_servers]
+                    if not servers_to_test:
+                        raise ValueError("No valid target servers selected")
 
                 suites_to_run = []
                 if suite == "all":
@@ -561,68 +546,33 @@ class Orchestrator:
                 if not enabled_tools:
                     raise ValueError("No benchmark tools are enabled")
 
-                if custom_server:
-                    resolved_targets = runtime_targets
-                    for server_id in servers_to_test:
-                        client = runtime_agent_clients[server_id]
-                        target_url = resolved_targets[server_id]
-                        if not target_url:
-                            raise ValueError("Custom server is missing an Ollama URL")
-                        agent_ok = await client.check_agent_health()
-                        ollama_ok = await client.check_ollama_health(target_url)
-                        if not agent_ok:
-                            raise RuntimeError(f"Agent for '{server_id}' is offline")
-                        if not ollama_ok:
-                            raise RuntimeError(
-                                f"Ollama for '{server_id}' is offline at target URL '{target_url}'"
-                            )
-                        models = await client.get_ollama_models(target_url)
-                        for model in self.config.models:
-                            if model not in models:
-                                raise RuntimeError(
-                                    f"Model '{model}' not available on '{server_id}' at '{target_url}'"
-                                )
-                    enabled_tools, unavailable_tools = self._split_available_tools(
+                original_servers = self.config.servers
+                original_clients = self.agent_clients
+                self.config.servers = runtime_servers
+                self.agent_clients = runtime_agent_clients
+                try:
+                    resolved_targets = await self._validate_run_targets(
+                        servers_to_test,
+                        environment,
                         enabled_tools,
-                        next(iter(resolved_targets.values())),
-                        self.config.models[0],
                     )
-                    if unavailable_tools:
-                        warning_msg = (
-                            f"Skipping unavailable tools: {', '.join(unavailable_tools)}"
-                        )
-                        console.print(f"    ! {warning_msg}", style="yellow")
-                        self._progress["errors"].append(warning_msg)
-                    if not enabled_tools:
-                        raise RuntimeError("No benchmark tools are available after preflight")
-                else:
-                    original_servers = self.config.servers
-                    original_clients = self.agent_clients
-                    self.config.servers = runtime_servers
-                    self.agent_clients = runtime_agent_clients
-                    try:
-                        resolved_targets = await self._validate_run_targets(
-                            servers_to_test,
-                            environment,
-                            enabled_tools,
-                        )
-                    finally:
-                        self.config.servers = original_servers
-                        self.agent_clients = original_clients
+                finally:
+                    self.config.servers = original_servers
+                    self.agent_clients = original_clients
 
-                    enabled_tools, unavailable_tools = self._split_available_tools(
-                        enabled_tools,
-                        next(iter(resolved_targets.values())),
-                        self.config.models[0],
+                enabled_tools, unavailable_tools = self._split_available_tools(
+                    enabled_tools,
+                    next(iter(resolved_targets.values())),
+                    self.config.models[0],
+                )
+                if unavailable_tools:
+                    warning_msg = (
+                        f"Skipping unavailable tools: {', '.join(unavailable_tools)}"
                     )
-                    if unavailable_tools:
-                        warning_msg = (
-                            f"Skipping unavailable tools: {', '.join(unavailable_tools)}"
-                        )
-                        console.print(f"    ! {warning_msg}", style="yellow")
-                        self._progress["errors"].append(warning_msg)
-                    if not enabled_tools:
-                        raise RuntimeError("No benchmark tools are available after preflight")
+                    console.print(f"    ! {warning_msg}", style="yellow")
+                    self._progress["errors"].append(warning_msg)
+                if not enabled_tools:
+                    raise RuntimeError("No benchmark tools are available after preflight")
 
                 console.print(
                     f"    Enabled tools: {[t[0] for t in enabled_tools]}",
