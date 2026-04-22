@@ -243,7 +243,7 @@ wait_for_http_health() {
 ensure_support_services() {
   local compose_cmd
   if ! compose_cmd="$(resolve_compose_cmd)"; then
-    print_warn "Docker Compose not found. Skipping PostgreSQL/InfluxDB/Grafana startup."
+    print_warn "Docker Compose not found. Skipping PostgreSQL startup."
     return 0
   fi
 
@@ -270,7 +270,7 @@ ensure_support_services() {
   print_info "Starting support services with $compose_cmd"
   if ! (
     cd "$PROJECT_ROOT"
-    $compose_cmd up -d postgres influxdb
+    $compose_cmd up -d postgres
   ); then
     print_warn "Failed to start Docker services. Continuing with app startup only."
     return 0
@@ -280,12 +280,6 @@ ensure_support_services() {
     print_ok "PostgreSQL is ready on port 5432"
   else
     print_warn "PostgreSQL did not become ready in time"
-  fi
-
-  if wait_for_tcp_port 8086 40; then
-    print_ok "InfluxDB is ready on port 8086"
-  else
-    print_warn "InfluxDB did not become ready in time"
   fi
 
 }

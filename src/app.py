@@ -394,6 +394,7 @@ async def page_prompts(request: Request):
         "prompts.html",
         {
             "page": "prompts",
+            "config": config,
         },
     )
 
