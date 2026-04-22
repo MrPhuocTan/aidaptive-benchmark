@@ -207,3 +207,28 @@ class ServerProfile(Base):
     models_available = Column(JSON, nullable=True)
     aidaptive_version = Column(String(50), nullable=True)
     aidaptive_firmware = Column(String(50), nullable=True)
+class PromptSet(Base):
+    __tablename__ = "prompt_sets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=get_local_time)
+
+    prompts = relationship(
+        "PromptEntry",
+        back_populates="prompt_set",
+        cascade="all, delete-orphan",
+    )
+
+
+class PromptEntry(Base):
+    __tablename__ = "prompt_entries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    prompt_set_id = Column(Integer, ForeignKey("prompt_sets.id"), nullable=False)
+    scenario = Column(String(100), nullable=False, index=True)
+    prompt_text = Column(Text, nullable=False)
+
+    prompt_set = relationship("PromptSet", back_populates="prompts")
+

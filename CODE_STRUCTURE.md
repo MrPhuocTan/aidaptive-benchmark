@@ -54,6 +54,7 @@ The frontend uses **Jinja2** templates with **Tailwind CSS**. All templates exte
 | `base.html` | Core layout, navigation, and global JS/CSS dependencies. |
 | `dashboard.html` | Main overview with recent runs, total stats, and TPS trends. |
 | `servers.html` | Data Table for CRUD operations on dynamic Server Profiles. |
+| `prompts.html` | CRUD operations for Prompt Sets and Excel dataset uploads. |
 | `benchmark.html` | Form to configure and start a new benchmark run. |
 | `history.html` | Paginated list of all past benchmark runs. |
 | `run_detail.html` | Detailed results for a specific run, including comparison tables and Chart.js visualizations. |

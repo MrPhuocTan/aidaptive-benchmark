@@ -340,8 +340,19 @@ class Orchestrator:
 
         return all_ok
 
-    def _load_prompts(self, scenario: str) -> list:
-        """Load prompt dataset for a scenario from JSON files"""
+    def _load_prompts(self, scenario: str, prompt_set_id: int = None) -> list:
+        """Load prompt dataset for a scenario from DB or JSON files"""
+        if prompt_set_id:
+            try:
+                repo = self.data_sink.get_repository()
+                db_prompts = repo.get_prompts_by_set_and_scenario(prompt_set_id, scenario)
+                if db_prompts:
+                    return [{"prompt": p.prompt_text} for p in db_prompts]
+                else:
+                    console.print(f"      ! No prompts found in DB for set {prompt_set_id} / {scenario}, falling back to default.", style="yellow")
+            except Exception as e:
+                console.print(f"      ! Error loading prompts from DB: {e}", style="yellow")
+
         prompts_dir = Path(__file__).parent.parent / "prompts"
         prompt_file = prompts_dir / f"{scenario}.json"
 
@@ -456,6 +467,7 @@ class Orchestrator:
         notes: str = "",
         tags: list[str] = None,
         resume_from_db: bool = False,
+        prompt_set_id: int = None,
     ):
         """Run benchmark asynchronously"""
         async with self._run_lock:
@@ -645,7 +657,7 @@ class Orchestrator:
 
                     for scenario in scenarios:
                         self._check_cancelled()
-                        prompts = self._load_prompts(scenario)
+                        prompts = self._load_prompts(scenario, prompt_set_id)
                         console.print(
                             f"      Scenario: {scenario} ({len(prompts)} unique prompts loaded)",
                             style="white",

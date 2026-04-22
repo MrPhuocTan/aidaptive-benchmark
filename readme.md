@@ -31,7 +31,7 @@ The **aiDaptive Benchmark Suite** is an advanced AI performance measurement tool
 | **Automated Comparison** | Automatic calculation of performance differentials (`Δ%`) to determine the optimal configuration. |
 | **Built-in Visualization**| Interactive Chart.js integration embedded directly within the user interface. |
 | **History & Reports** | Persistent test execution history with comprehensive PDF/CSV export capabilities. |
-| **Prompt Scenarios** | Diverse testing scenarios including conversational, coding, and long-context outputs. |
+| **Prompt Management** | Upload and manage prompt datasets via Excel files, stored directly in the PostgreSQL database. |
 
 ---
 

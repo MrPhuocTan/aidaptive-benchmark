@@ -21,6 +21,7 @@ TRANSLATIONS = {
         "nav.comparison": "Compare Runs",
         "nav.reports": "Reports",
         "nav.settings": "Settings",
+        "nav.prompts": "Prompts",
 
         "header.control_center": "Control Center",
         "header.language": "Language",
@@ -265,6 +266,7 @@ TRANSLATIONS = {
         "nav.comparison": "So sánh run",
         "nav.reports": "Báo cáo",
         "nav.settings": "Cài đặt",
+        "nav.prompts": "Quản lý Prompt",
 
         "header.control_center": "Trung tâm điều khiển",
         "header.language": "Ngôn ngữ",
@@ -511,6 +513,7 @@ TRANSLATIONS = {
         "nav.comparison": "运行对比",
         "nav.reports": "报告",
         "nav.settings": "设置",
+        "nav.prompts": "提示词",
 
         "header.control_center": "控制中心",
         "header.language": "语言",

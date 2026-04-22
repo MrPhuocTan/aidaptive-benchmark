@@ -67,7 +67,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <!-- Suite -->
             <div>
                 <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.test_suite") }}</label>
@@ -100,6 +100,20 @@
                     {% for model in config.models %}
                     <option value="{{ model }}">{{ model }}</option>
                     {% endfor %}
+                </select>
+            </div>
+
+            <!-- Prompt Set -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">Prompt Set</label>
+                <select id="bench-prompt-set" class="w-full">
+                    {% if prompt_sets %}
+                        {% for pset in prompt_sets %}
+                        <option value="{{ pset.id }}">{{ pset.name }} ({{ pset.prompts|length }} prompts)</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">No custom sets (using defaults)</option>
+                    {% endif %}
                 </select>
             </div>
         </div>

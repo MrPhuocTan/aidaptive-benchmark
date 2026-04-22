@@ -333,6 +333,7 @@ async function startBenchmark() {
 
     const env = document.getElementById("bench-env")?.value || "lan";
     const notes = document.getElementById("bench-notes")?.value || "";
+    const promptSetId = document.getElementById("bench-prompt-set")?.value || null;
     
     // Advanced options & Tags
     const tagsInput = document.getElementById("bench-tags")?.value || "";
@@ -358,6 +359,9 @@ async function startBenchmark() {
 
     try {
         const payload = { suite, servers, environment: env, notes, tags, advanced_options: advancedOptions };
+        if (promptSetId) {
+            payload.prompt_set_id = parseInt(promptSetId);
+        }
 
         const resp = await fetch("/api/benchmark/start", {
             method: "POST",

@@ -385,16 +385,36 @@ async def page_servers(request: Request, session: AsyncSession = Depends(get_db)
 
 
 # --------------------------------------------------
+# Page: Prompts
+# --------------------------------------------------
+@app.get("/prompts", response_class=HTMLResponse)
+async def page_prompts(request: Request):
+    return _render(
+        request,
+        "prompts.html",
+        {
+            "page": "prompts",
+        },
+    )
+
+# --------------------------------------------------
 # Page: Benchmark
 # --------------------------------------------------
 @app.get("/benchmark", response_class=HTMLResponse)
 async def page_benchmark(request: Request):
+    repo = database.get_repository()
+    try:
+        prompt_sets = repo.get_prompt_sets()
+    finally:
+        database.get_sync_session().close()
+        
     return _render(
         request,
         "benchmark.html",
         {
             "page": "benchmark",
             "config": config,
+            "prompt_sets": prompt_sets,
         },
     )
 
@@ -619,6 +639,7 @@ async def api_benchmark_start(request: Request):
     environment = body.get("environment", "lan")
     notes = body.get("notes", "")
     tags = body.get("tags", [])
+    prompt_set_id = body.get("prompt_set_id")
 
     advanced_options = body.get("advanced_options")
     if advanced_options:
@@ -643,6 +664,7 @@ async def api_benchmark_start(request: Request):
             environment=environment,
             notes=notes,
             tags=tags,
+            prompt_set_id=prompt_set_id,
         )
     )
 
@@ -1200,5 +1222,7 @@ async def api_trend(
 # Include Routers
 # --------------------------------------------------
 from src.routers.reports import router as reports_router
-app.include_router(reports_router)
+from src.routers.prompts import router as prompts_router
 
+app.include_router(reports_router)
+app.include_router(prompts_router)

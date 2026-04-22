@@ -32,4 +32,4 @@ click==8.1.8
 rich==13.9.4
 psutil==6.1.1
 
-watchfiles==1.0.4
+watchfiles==1.0.4openpyxl==3.1.5
