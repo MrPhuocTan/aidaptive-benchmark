@@ -17,6 +17,7 @@ influxdb-client==1.48.0
 
 litellm==1.55.8
 locust==2.32.4
+llmperf @ git+https://github.com/ray-project/llmperf.git
 
 pandas==2.2.3
 numpy==2.2.1
