@@ -189,4 +189,4 @@ python -m src
 ## Support & Contact
 For platform inquiries, infrastructure support, or architectural discussions, contact the engineering team.
 
-*aiDaptive Benchmark Suite v2.0 - © 2024 aiDaptive Inc. All rights reserved.*
+*aiDaptive Benchmark Suite - © 2026 MrPhuocTan. All rights reserved.*
