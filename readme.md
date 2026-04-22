@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>aiDaptive Benchmark Suite v2.0</h1>
+  <h1>aiDaptive Benchmark Suite</h1>
   <p><b>A professional, dynamic, and multi-server LLM inference benchmarking platform.</b></p>
   
   [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](#)
