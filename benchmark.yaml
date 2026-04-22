@@ -11,16 +11,7 @@ postgres:
   user: "aidaptive"
   password: "aidaptive2024"
 
-influxdb:
-  url: "http://localhost:8086"
-  token: "aidaptive-benchmark-token"
-  org: "aidaptive"
-  bucket: "benchmarks"
 
-grafana:
-  url: "http://localhost:3000"
-  admin_user: "admin"
-  admin_password: "aidaptive2024"
 
 servers:
   server1:

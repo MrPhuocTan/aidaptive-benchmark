@@ -1,7 +1,7 @@
 # CODE STRUCTURE DOCUMENTATION
 
 ## 1. Overview
-- **Tech Stack:** Python 3.13+, FastAPI, SQLAlchemy (PostgreSQL), InfluxDB, Grafana, Jinja2, Tailwind CSS.
+- **Tech Stack:** Python 3.13+, FastAPI, SQLAlchemy (PostgreSQL), Jinja2, Tailwind CSS.
 - **Pattern:** Adapter Pattern (Benchmarks), Repository Pattern (DB), Orchestrator (Workflow Control).
 - **Entry Points:** `src/app.py` (Web), `src/__main__.py` (CLI), `src/background.py` (Background Sync).
 - **Purpose:** A mission-critical system for benchmarking, monitoring, and comparing AI Server performance across varied environments.
@@ -86,7 +86,7 @@ graph TD
     ORCH --> SINK[src/data/data_sink.py]
     
     SINK --> PG_W[src/data/postgres_writer.py]
-    SINK --> INF_W[src/data/influxdb_writer.py]
+
     SINK --> NORM[src/data/normalizer.py]
     
     REPO[src/database/repository.py] --> TABLES[src/database/tables.py]
@@ -100,7 +100,7 @@ graph TD
 | `src/orchestrator.py` | `adapters/*`, `agent_client`, `metric_collector`, `data_sink`, `aggregator` | `app.py`, `__main__.py` |
 | `src/collectors/agent_client.py` | `httpx`, `models` | `orchestrator`, `metric_collector`, `background` |
 | `src/collectors/metric_collector.py` | `agent_client`, `data_sink` | `orchestrator` |
-| `src/data/data_sink.py` | `influxdb_writer`, `postgres_writer`, `normalizer`, `repository` | `orchestrator`, `metric_collector` |
+| `src/data/data_sink.py` | `postgres_writer`, `normalizer`, `repository` | `orchestrator`, `metric_collector` |
 | `src/database/repository.py` | `tables`, `time_utils` | `app.py`, `data_sink`, `aggregator`, `routers/reports.py` |
 | `src/reports/pdf_generator.py` | `reportlab`, `time_utils` | `src/routers/reports.py` |
 | `src/background.py` | `agent_client`, `seed` | `app.py` |
@@ -183,8 +183,7 @@ sequenceDiagram
 3. `App` returns `StreamingResponse` for memory efficiency.
 
 ## 13. Connections & Environment (benchmark.yaml)
-- **InfluxDB:** Token-based auth. [TODO: verify if bucket auto-creates].
-- **Grafana:** Integration via direct link on Dashboard.
+
 - **Config:** `benchmark.concurrency_levels` defines the scaling X-axis for all charts.
 
 ## 14. Shared Utils (Scanned & Verified)

@@ -17,8 +17,6 @@ Tài liệu này hướng dẫn chi tiết cách thiết lập và chạy hệ t
 4. **Mở các cổng mạng (Port) cần thiết:**
    Vào **VPC network** -> **Firewall** và tạo quy tắc (Create Firewall Rule) mở các cổng TCP sau cho mọi IP (`0.0.0.0/0`):
    - `8443` (Cổng của ứng dụng Benchmark)
-   - `3000` (Grafana Dashboard)
-   - `8086` (InfluxDB)
    - `5432` (PostgreSQL - Tùy chọn nếu cần truy cập từ bên ngoài)
 
 ---
@@ -64,7 +62,7 @@ cd aidaptive-benchmark
 
 ## 4. Khởi chạy Ứng dụng
 
-### 4.1 Khởi chạy các Database (PostgreSQL, InfluxDB, Grafana)
+### 4.1 Khởi chạy Database (PostgreSQL)
 ```bash
 docker-compose up -d
 ```

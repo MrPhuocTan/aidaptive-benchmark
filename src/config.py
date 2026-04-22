@@ -38,15 +38,6 @@ class PostgresConfig:
 
 
 @dataclass
-class InfluxDBConfig:
-    url: str = "http://localhost:8086"
-    token: str = ""
-    org: str = "aidaptive"
-    bucket: str = "benchmarks"
-
-
-
-@dataclass
 class ServerConfig:
     name: str = ""
     description: str = ""
@@ -107,7 +98,7 @@ class ReportsConfig:
 class Config:
     app: AppConfig = field(default_factory=AppConfig)
     postgres: PostgresConfig = field(default_factory=PostgresConfig)
-    influxdb: InfluxDBConfig = field(default_factory=InfluxDBConfig)
+
     servers: dict = field(default_factory=dict)
     models: list = field(default_factory=list)
     environments: dict = field(default_factory=dict)
@@ -132,9 +123,6 @@ def load_config(path: str = "benchmark.yaml") -> Config:
 
     if "postgres" in raw:
         cfg.postgres = PostgresConfig(**raw["postgres"])
-
-    if "influxdb" in raw:
-        cfg.influxdb = InfluxDBConfig(**raw["influxdb"])
 
 
     if "servers" in raw:

@@ -1,7 +1,6 @@
-"""Unified data sink - writes to both PostgreSQL and InfluxDB"""
+"""Unified data sink - writes to PostgreSQL"""
 
 from src.config import Config
-from src.data.influxdb_writer import InfluxDBWriter
 from src.data.normalizer import Normalizer
 from src.database.engine import Database
 from src.database.repository import Repository
@@ -15,9 +14,8 @@ from src.models import BenchmarkResult, HardwareMetrics
 
 class DataSink:
     """
-    Unified writer that sends data to both:
-    - PostgreSQL (structured, persistent, queryable for history)
-    - InfluxDB (time-series, realtime Grafana dashboards)
+    Unified writer that sends data to:
+    - PostgreSQL (persistent, relational storage)
     """
 
     def __init__(self, config: Config):
@@ -27,25 +25,15 @@ class DataSink:
         self.db = Database(config.postgres)
         self.db.create_tables()
 
-        # InfluxDB
-        self.influx = InfluxDBWriter(config.influxdb)
-        try:
-            self.influx.connect()
-        except Exception as e:
-            print(f"  InfluxDB connection warning: {e}")
-
     def close(self):
-        try:
-            self.influx.close()
-        except Exception:
-            pass
+        pass
 
     def get_repository(self) -> Repository:
         session = self.db.get_sync_session()
         return Repository(session)
 
     def write_benchmark_result(self, result: BenchmarkResult, run_id: str):
-        """Write benchmark result to BOTH databases"""
+        """Write benchmark result to PostgreSQL"""
 
         # Normalize first
         result = Normalizer.normalize(result)
@@ -91,15 +79,8 @@ class DataSink:
         finally:
             session.close()
 
-        # 2. InfluxDB
-        try:
-            result.run_id = run_id
-            self.influx.write_benchmark_result(result)
-        except Exception as e:
-            print(f"  InfluxDB write error (benchmark): {e}")
-
     def write_hardware_metrics(self, metrics: HardwareMetrics, run_id: str):
-        """Write hardware metrics to BOTH databases"""
+        """Write hardware metrics to PostgreSQL"""
 
         # 1. PostgreSQL
         session = self.db.get_sync_session()
@@ -131,14 +112,8 @@ class DataSink:
         finally:
             session.close()
 
-        # 2. InfluxDB
-        try:
-            self.influx.write_hardware_metrics(metrics)
-        except Exception as e:
-            print(f"  InfluxDB write error (hardware): {e}")
-
     def write_comparison(self, run_id: str, **kwargs):
-        """Write server comparison to PostgreSQL only (not time-series)"""
+        """Write server comparison to PostgreSQL"""
 
         session = self.db.get_sync_session()
         try:
@@ -152,7 +127,7 @@ class DataSink:
             session.close()
 
     def delete_run(self, run_id: str):
-        """Delete all data for a run from BOTH databases"""
+        """Delete all data for a run from PostgreSQL"""
 
         # 1. PostgreSQL (cascade deletes via foreign keys)
         repo = self.get_repository()
@@ -168,9 +143,3 @@ class DataSink:
             print(f"  PostgreSQL delete error: {e}")
         finally:
             repo_session.close()
-
-        # 2. InfluxDB
-        try:
-            self.influx.delete_run_data(run_id)
-        except Exception as e:
-            print(f"  InfluxDB delete error: {e}")

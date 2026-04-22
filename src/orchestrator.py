@@ -291,8 +291,7 @@ class Orchestrator:
         pg_ok = self.data_sink.db.is_connected()
         results.append(("PostgreSQL", self.config.postgres.host, pg_ok))
 
-        influx_ok = self.data_sink.influx.is_connected()
-        results.append(("InfluxDB", self.config.influxdb.url, influx_ok))
+
 
         return results
 

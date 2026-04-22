@@ -34,7 +34,7 @@ from src.database.repository import AsyncRepository
 database = Database(config.postgres)
 
 # --------------------------------------------------
-# Import data sink (may fail if influx not ready, thats ok)
+# Import data sink
 # --------------------------------------------------
 try:
     from src.data.data_sink import DataSink
@@ -555,12 +555,6 @@ async def api_status():
         server_statuses.append(await _build_server_payload(server_id, server_cfg))
 
     pg_ok = database.is_connected()
-    influx_ok = False
-    if data_sink:
-        try:
-            influx_ok = data_sink.influx.is_connected()
-        except Exception:
-            pass
 
     return {
         "status": "ok",
@@ -568,10 +562,8 @@ async def api_status():
         "servers": server_statuses,
         "database": {
             "postgres": pg_ok,
-            "influxdb": influx_ok,
         },
         "postgres": pg_ok,
-        "influxdb": influx_ok,
         "benchmark": {
             "is_running": orchestrator.is_running() if orchestrator else False,
             "current_run_id": orchestrator.get_progress().get("run_id") if orchestrator and orchestrator.is_running() else None,
