@@ -13,7 +13,6 @@ asyncpg==0.30.0
 psycopg2-binary==2.9.10
 alembic==1.14.0
 
-influxdb-client==1.48.0
 
 litellm==1.55.8
 locust==2.32.4
@@ -32,4 +31,5 @@ click==8.1.8
 rich==13.9.4
 psutil==6.1.1
 
-watchfiles==1.0.4openpyxl==3.1.5
+watchfiles==1.0.4
+openpyxl==3.1.5
