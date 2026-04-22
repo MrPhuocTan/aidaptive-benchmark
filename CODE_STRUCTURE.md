@@ -151,11 +151,16 @@ erDiagram
     BenchmarkRun ||--o{ BenchmarkResultRow : "has"
     BenchmarkRun ||--o{ HardwareSnapshot : "monitors"
     BenchmarkRun ||--o{ ServerComparison : "analyzes"
+    PromptSet ||--o{ PromptEntry : "contains"
     ServerProfile {
         int id PK
         string ip_address UK
         string name
         json hardware_details
+    }
+    PromptSet {
+        int id PK
+        string name
     }
 ```
 

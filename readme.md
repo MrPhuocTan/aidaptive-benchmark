@@ -171,16 +171,8 @@ sequenceDiagram
 git clone https://github.com/MrPhuocTan/aidaptive-benchmark.git
 cd aidaptive-benchmark
 
-# Start the database
-docker-compose up -d
-
-# Install dependencies
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Start the application server
-python -m src
+# Start the application and database
+./command/start_server.sh
 ```
 *The Web UI will be accessible at `http://localhost:8443`*
 
