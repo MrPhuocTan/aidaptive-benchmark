@@ -62,42 +62,44 @@
             {{ server|replace('server1', t('run_detail.server1'))|replace('server2', t('run_detail.server2')) }}
         </h4>
 
-        <table class="data-table mb-6">
-            <thead>
-                <tr>
-                    <th>{{ t("common.metric") }}</th>
-                    <th>{{ t("comparison.run_a") }}</th>
-                    <th>{{ t("comparison.run_b") }}</th>
-                    <th>{{ t("common.change") }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set sa = data_run1.get(server, {}) %}
-                {% set sb = data_run2.get(server, {}) %}
+        <div class="overflow-x-auto">
+            <table class="data-table mb-6">
+                <thead>
+                    <tr>
+                        <th>{{ t("common.metric") }}</th>
+                        <th>{{ t("comparison.run_a") }}</th>
+                        <th>{{ t("comparison.run_b") }}</th>
+                        <th>{{ t("common.change") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set sa = data_run1.get(server, {}) %}
+                    {% set sb = data_run2.get(server, {}) %}
 
-                {% for label, key in [
-                    ('TTFT (ms)', 'avg_ttft_ms'),
-                    ('TPOT (ms)', 'avg_tpot_ms'),
-                    ('TPS', 'avg_tps'),
-                    ('RPS', 'avg_rps'),
-                    ('P99 (ms)', 'avg_p99_ms'),
-                ] %}
-                <tr>
-                    <td class="font-medium">{{ label }}</td>
-                    <td>{% if sa.get(key) %}{{ "%.2f"|format(sa[key]) }}{% else %}--{% endif %}</td>
-                    <td>{% if sb.get(key) %}{{ "%.2f"|format(sb[key]) }}{% else %}--{% endif %}</td>
-                    <td>
-                        {% if sa.get(key) and sb.get(key) and sa[key] != 0 %}
-                            {% set delta = ((sb[key] - sa[key]) / sa[key]) * 100 %}
-                            <span class="metric-delta {% if delta > 0 %}positive{% else %}negative{% endif %}">
-                                {% if delta > 0 %}+{% endif %}{{ "%.1f"|format(delta) }}%
-                            </span>
-                        {% else %}--{% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    {% for label, key in [
+                        ('TTFT (ms)', 'avg_ttft_ms'),
+                        ('TPOT (ms)', 'avg_tpot_ms'),
+                        ('TPS', 'avg_tps'),
+                        ('RPS', 'avg_rps'),
+                        ('P99 (ms)', 'avg_p99_ms'),
+                    ] %}
+                    <tr>
+                        <td class="font-medium">{{ label }}</td>
+                        <td>{% if sa.get(key) %}{{ "%.2f"|format(sa[key]) }}{% else %}--{% endif %}</td>
+                        <td>{% if sb.get(key) %}{{ "%.2f"|format(sb[key]) }}{% else %}--{% endif %}</td>
+                        <td>
+                            {% if sa.get(key) and sb.get(key) and sa[key] != 0 %}
+                                {% set delta = ((sb[key] - sa[key]) / sa[key]) * 100 %}
+                                <span class="metric-delta {% if delta > 0 %}positive{% else %}negative{% endif %}">
+                                    {% if delta > 0 %}+{% endif %}{{ "%.1f"|format(delta) }}%
+                                </span>
+                            {% else %}--{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% endfor %}
     </div>
     {% elif selected_run1 or selected_run2 %}

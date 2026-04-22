@@ -98,48 +98,50 @@
         </div>
 
         {% if recent_runs %}
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>{{ t("history.run_id") }}</th>
-                    <th>{{ t("common.status") }}</th>
-                    <th>{{ t("benchmark.suite") }}</th>
-                    <th>{{ t("common.environment") }}</th>
-                    <th>{{ t("common.duration") }}</th>
-                    <th>{{ t("common.date") }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for run in recent_runs %}
-                <tr class="cursor-pointer" onclick="window.location='/history/{{ run.run_id }}'">
-                    <td class="font-mono text-xs text-primary-400">{{ run.run_id }}</td>
-                    <td>
-                        {% if run.status == 'completed' %}
-                        <span class="text-green-400">{{ t("common.completed") }}</span>
-                        {% elif run.status == 'running' %}
-                        <span class="text-yellow-400">{{ t("common.running") }}</span>
-                        {% elif run.status == 'failed' %}
-                        <span class="text-red-400">{{ t("common.failed") }}</span>
-                        {% else %}
-                        <span class="text-slate-400">{{ run.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ run.suite or '--' }}</td>
-                    <td>{{ run.environment or '--' }}</td>
-                    <td>
-                        {% if run.duration_seconds %}
-                        {{ "%.1f"|format(run.duration_seconds) }}s
-                        {% else %}--{% endif %}
-                    </td>
-                    <td class="text-xs text-slate-500">
-                        {% if run.started_at %}
-                        {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ t("history.run_id") }}</th>
+                        <th>{{ t("common.status") }}</th>
+                        <th>{{ t("benchmark.suite") }}</th>
+                        <th>{{ t("common.environment") }}</th>
+                        <th>{{ t("common.duration") }}</th>
+                        <th>{{ t("common.date") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in recent_runs %}
+                    <tr class="cursor-pointer" onclick="window.location='/history/{{ run.run_id }}'">
+                        <td class="font-mono text-xs text-primary-400">{{ run.run_id }}</td>
+                        <td>
+                            {% if run.status == 'completed' %}
+                            <span class="text-green-400">{{ t("common.completed") }}</span>
+                            {% elif run.status == 'running' %}
+                            <span class="text-yellow-400">{{ t("common.running") }}</span>
+                            {% elif run.status == 'failed' %}
+                            <span class="text-red-400">{{ t("common.failed") }}</span>
+                            {% else %}
+                            <span class="text-slate-400">{{ run.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ run.suite or '--' }}</td>
+                        <td>{{ run.environment or '--' }}</td>
+                        <td>
+                            {% if run.duration_seconds %}
+                            {{ "%.1f"|format(run.duration_seconds) }}s
+                            {% else %}--{% endif %}
+                        </td>
+                        <td class="text-xs text-slate-500">
+                            {% if run.started_at %}
+                            {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
         <p class="text-slate-500 text-sm py-8 text-center">
             {{ t("dashboard.empty_runs") }}

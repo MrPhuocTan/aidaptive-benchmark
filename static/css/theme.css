@@ -348,19 +348,13 @@ body {
     box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12);
 }
 
-/* Tables */
 .data-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-@media (max-width: 768px) {
-    table, .data-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-    }
+.data-table th, .data-table td {
+    white-space: nowrap;
 }
 
 .data-table th {

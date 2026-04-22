@@ -82,69 +82,71 @@
     {% if summary %}
     <div class="card">
         <div class="card-header">{{ t("run_detail.performance_summary") }}</div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>{{ t("common.metric") }}</th>
-                    <th>{{ t("run_detail.server1") }}</th>
-                    <th>{{ t("run_detail.server2") }}</th>
-                    <th>{{ t("common.delta") }}</th>
-                    <th>{{ t("common.winner") }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set s1 = summary.get('server1', {}) %}
-                {% set s2 = summary.get('server2', {}) %}
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ t("common.metric") }}</th>
+                        <th>{{ t("run_detail.server1") }}</th>
+                        <th>{{ t("run_detail.server2") }}</th>
+                        <th>{{ t("common.delta") }}</th>
+                        <th>{{ t("common.winner") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set s1 = summary.get('server1', {}) %}
+                    {% set s2 = summary.get('server2', {}) %}
 
-                {% set metrics = [
-                    ('TTFT (ms)', 'avg_ttft_ms', true),
-                    ('TPOT (ms)', 'avg_tpot_ms', true),
-                    ('TPS', 'avg_tps', false),
-                    ('RPS', 'avg_rps', false),
-                    ('P99 Latency (ms)', 'avg_p99_ms', true),
-                ] %}
+                    {% set metrics = [
+                        ('TTFT (ms)', 'avg_ttft_ms', true),
+                        ('TPOT (ms)', 'avg_tpot_ms', true),
+                        ('TPS', 'avg_tps', false),
+                        ('RPS', 'avg_rps', false),
+                        ('P99 Latency (ms)', 'avg_p99_ms', true),
+                    ] %}
 
-                {% for label, key, lower_better in metrics %}
-                {% set v1 = s1.get(key) %}
-                {% set v2 = s2.get(key) %}
-                <tr>
-                    <td class="font-medium">{{ label }}</td>
-                    <td>{% if v1 %}{{ "%.2f"|format(v1) }}{% else %}--{% endif %}</td>
-                    <td class="text-violet-700">{% if v2 %}{{ "%.2f"|format(v2) }}{% else %}--{% endif %}</td>
-                    <td>
-                        {% if v1 and v2 and v1 != 0 %}
-                            {% set delta = ((v2 - v1) / v1) * 100 %}
-                            {% if lower_better %}{% set delta = -delta %}{% endif %}
-                            <span class="metric-delta {% if delta > 0 %}positive{% else %}negative{% endif %}">
-                                {% if delta > 0 %}+{% endif %}{{ "%.1f"|format(delta) }}%
-                            </span>
-                        {% else %}--{% endif %}
-                    </td>
-                    <td>
-                        {% if v1 and v2 %}
-                            {% if lower_better %}
-                                {% if v2 < v1 %}
-                                <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
-                                {% elif v1 < v2 %}
-                                <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
+                    {% for label, key, lower_better in metrics %}
+                    {% set v1 = s1.get(key) %}
+                    {% set v2 = s2.get(key) %}
+                    <tr>
+                        <td class="font-medium">{{ label }}</td>
+                        <td>{% if v1 %}{{ "%.2f"|format(v1) }}{% else %}--{% endif %}</td>
+                        <td class="text-violet-700">{% if v2 %}{{ "%.2f"|format(v2) }}{% else %}--{% endif %}</td>
+                        <td>
+                            {% if v1 and v2 and v1 != 0 %}
+                                {% set delta = ((v2 - v1) / v1) * 100 %}
+                                {% if lower_better %}{% set delta = -delta %}{% endif %}
+                                <span class="metric-delta {% if delta > 0 %}positive{% else %}negative{% endif %}">
+                                    {% if delta > 0 %}+{% endif %}{{ "%.1f"|format(delta) }}%
+                                </span>
+                            {% else %}--{% endif %}
+                        </td>
+                        <td>
+                            {% if v1 and v2 %}
+                                {% if lower_better %}
+                                    {% if v2 < v1 %}
+                                    <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
+                                    {% elif v1 < v2 %}
+                                    <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
+                                    {% else %}
+                                    <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
+                                    {% endif %}
                                 {% else %}
-                                <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
+                                    {% if v2 > v1 %}
+                                    <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
+                                    {% elif v1 > v2 %}
+                                    <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
+                                    {% else %}
+                                    <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
+                                    {% endif %}
                                 {% endif %}
-                            {% else %}
-                                {% if v2 > v1 %}
-                                <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
-                                {% elif v1 > v2 %}
-                                <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
-                                {% else %}
-                                <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            {% else %}--{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
