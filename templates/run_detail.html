@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t("run_detail.title", run_id=run.run_id) }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="card">
+        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div>
+                <div class="text-[0.7rem] uppercase tracking-[0.24em] text-violet-500 font-semibold">{{ t("run_detail.eyebrow") }}</div>
+                <h3 class="mt-3 text-3xl font-semibold text-slate-900 font-mono">{{ run.run_id }}</h3>
+                <p class="mt-2 text-sm text-slate-500">
+                    {% if run.started_at %}{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}{% endif %}
+                    {% if run.duration_seconds %} | {{ "%.1f"|format(run.duration_seconds) }}s{% endif %}
+                </p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="exportCSV('{{ run.run_id }}')" class="btn-secondary">{{ t("common.export_csv") }}</button>
+                <button onclick="deleteRun('{{ run.run_id }}')" class="btn-danger">{{ t("common.delete") }}</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="card text-center">
+            <div class="card-header">{{ t("common.status") }}</div>
+            <div class="text-lg font-semibold
+                {% if run.status == 'completed' %}text-green-600
+                {% elif run.status == 'failed' %}text-red-500
+                {% else %}text-amber-600{% endif %}">
+                {% if run.status == 'completed' %}{{ t("common.completed") }}
+                {% elif run.status == 'running' %}{{ t("common.running") }}
+                {% elif run.status == 'failed' %}{{ t("common.failed") }}
+                {% elif run.status == 'stopped' %}{{ t("common.stopped") }}
+                {% else %}{{ run.status|title }}{% endif %}
+            </div>
+        </div>
+        <div class="card text-center">
+            <div class="card-header">{{ t("benchmark.suite") }}</div>
+            <div class="text-lg font-semibold text-slate-900">{{ run.suite or '--' }}</div>
+        </div>
+        <div class="card text-center">
+            <div class="card-header">{{ t("common.environment") }}</div>
+            <div class="text-lg font-semibold text-slate-900">{{ run.environment or '--' }}</div>
+        </div>
+        <div class="card text-center">
+            <div class="card-header">{{ t("common.model") }}</div>
+            <div class="text-lg font-semibold text-slate-900">{{ run.model or '--' }}</div>
+        </div>
+        <div class="card text-center">
+            <div class="card-header">{{ t("history.tests") }}</div>
+            <div class="text-lg font-semibold text-slate-900">
+                {{ run.completed_tests or 0 }} / {{ run.total_tests or 0 }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes & Tags -->
+    {% if run.notes or run.tags %}
+    <div class="card">
+        {% if run.notes %}
+        <div class="text-sm text-slate-600 mb-2">{{ run.notes }}</div>
+        {% endif %}
+        {% if run.tags %}
+        <div class="flex gap-2">
+            {% for tag in run.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Summary Comparison -->
+    {% if summary %}
+    <div class="card">
+        <div class="card-header">{{ t("run_detail.performance_summary") }}</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t("common.metric") }}</th>
+                    <th>{{ t("run_detail.server1") }}</th>
+                    <th>{{ t("run_detail.server2") }}</th>
+                    <th>{{ t("common.delta") }}</th>
+                    <th>{{ t("common.winner") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set s1 = summary.get('server1', {}) %}
+                {% set s2 = summary.get('server2', {}) %}
+
+                {% set metrics = [
+                    ('TTFT (ms)', 'avg_ttft_ms', true),
+                    ('TPOT (ms)', 'avg_tpot_ms', true),
+                    ('TPS', 'avg_tps', false),
+                    ('RPS', 'avg_rps', false),
+                    ('P99 Latency (ms)', 'avg_p99_ms', true),
+                ] %}
+
+                {% for label, key, lower_better in metrics %}
+                {% set v1 = s1.get(key) %}
+                {% set v2 = s2.get(key) %}
+                <tr>
+                    <td class="font-medium">{{ label }}</td>
+                    <td>{% if v1 %}{{ "%.2f"|format(v1) }}{% else %}--{% endif %}</td>
+                    <td class="text-violet-700">{% if v2 %}{{ "%.2f"|format(v2) }}{% else %}--{% endif %}</td>
+                    <td>
+                        {% if v1 and v2 and v1 != 0 %}
+                            {% set delta = ((v2 - v1) / v1) * 100 %}
+                            {% if lower_better %}{% set delta = -delta %}{% endif %}
+                            <span class="metric-delta {% if delta > 0 %}positive{% else %}negative{% endif %}">
+                                {% if delta > 0 %}+{% endif %}{{ "%.1f"|format(delta) }}%
+                            </span>
+                        {% else %}--{% endif %}
+                    </td>
+                    <td>
+                        {% if v1 and v2 %}
+                            {% if lower_better %}
+                                {% if v2 < v1 %}
+                                <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
+                                {% elif v1 < v2 %}
+                                <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
+                                {% else %}
+                                <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
+                                {% endif %}
+                            {% else %}
+                                {% if v2 > v1 %}
+                                <span class="text-violet-700 text-xs">{{ t("run_detail.server2") }}</span>
+                                {% elif v1 > v2 %}
+                                <span class="text-slate-500 text-xs">{{ t("run_detail.server1") }}</span>
+                                {% else %}
+                                <span class="text-slate-400 text-xs">{{ t("common.tie") }}</span>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="card">
+            <div class="card-header">{{ t("run_detail.comparison_chart") }}</div>
+            <div class="h-80">
+                <canvas id="comparison-chart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">{{ t("run_detail.hardware_timeline") }}</div>
+            <div class="h-80">
+                <canvas id="timeline-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Results -->
+    {% if results %}
+    <div class="card">
+        <div class="card-header">{{ t("run_detail.detailed_results", count=results|length) }}</div>
+        <div class="overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ t("common.server") }}</th>
+                        <th>{{ t("common.tool") }}</th>
+                        <th>{{ t("run_detail.scenario") }}</th>
+                        <th>TTFT (ms)</th>
+                        <th>TPOT (ms)</th>
+                        <th>TPS</th>
+                        <th>RPS</th>
+                        <th>P99 (ms)</th>
+                        <th>{{ t("run_detail.err_pct") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    <tr>
+                        <td>
+                            <span class="{% if r.server == 'server2' %}text-violet-700{% else %}text-slate-500{% endif %}">
+                                {{ r.server }}
+                            </span>
+                        </td>
+                        <td class="text-xs">{{ r.tool }}</td>
+                        <td class="text-xs">{{ r.scenario }}</td>
+                        <td>{% if r.ttft_ms %}{{ "%.1f"|format(r.ttft_ms) }}{% else %}--{% endif %}</td>
+                        <td>{% if r.tpot_ms %}{{ "%.2f"|format(r.tpot_ms) }}{% else %}--{% endif %}</td>
+                        <td>{% if r.tps %}{{ "%.1f"|format(r.tps) }}{% else %}--{% endif %}</td>
+                        <td>{% if r.rps %}{{ "%.2f"|format(r.rps) }}{% else %}--{% endif %}</td>
+                        <td>{% if r.latency_p99_ms %}{{ "%.0f"|format(r.latency_p99_ms) }}{% else %}--{% endif %}</td>
+                        <td>
+                            {% if r.error_rate is not none %}
+                                {% if r.error_rate > 0.05 %}
+                                <span class="text-red-500">{{ "%.1f"|format(r.error_rate * 100) }}%</span>
+                                {% else %}
+                                <span class="text-green-600">{{ "%.1f"|format(r.error_rate * 100) }}%</span>
+                                {% endif %}
+                            {% else %}--{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="comparison-data">
+{{ comparison_chart|tojson }}
+</script>
+<script type="application/json" id="timeline-data">
+{{ timeline_chart|tojson }}
+</script>
+<script>
+    (function () {
+        if (typeof Chart === "undefined") {
+            return;
+        }
+
+        const comparisonData = JSON.parse(document.getElementById("comparison-data").textContent);
+        const timelineData = JSON.parse(document.getElementById("timeline-data").textContent);
+
+        const comparisonCanvas = document.getElementById("comparison-chart");
+        if (comparisonCanvas && comparisonData && comparisonData.labels) {
+            new Chart(comparisonCanvas, {
+                type: "bar",
+                data: {
+                    labels: comparisonData.labels,
+                    datasets: [
+                        {
+                            label: "{{ t('run_detail.chart_label_server1') }}",
+                            data: comparisonData.server1,
+                            backgroundColor: "rgba(156, 163, 175, 0.75)",
+                            borderColor: "#9ca3af",
+                            borderWidth: 1,
+                        },
+                        {
+                            label: "{{ t('run_detail.chart_label_server2') }}",
+                            data: comparisonData.server2,
+                            backgroundColor: "rgba(168, 85, 247, 0.75)",
+                            borderColor: "#a855f7",
+                            borderWidth: 1,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: "#475569" } }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: "#64748b" },
+                            grid: { color: "rgba(148,163,184,0.18)" }
+                        },
+                        y: {
+                            ticks: { color: "#64748b" },
+                            grid: { color: "rgba(148,163,184,0.18)" }
+                        }
+                    }
+                }
+            });
+        }
+
+        const timelineCanvas = document.getElementById("timeline-chart");
+        if (timelineCanvas && timelineData && Object.keys(timelineData).length > 0) {
+            const datasets = [];
+            Object.entries(timelineData).forEach(([serverId, payload]) => {
+                datasets.push({
+                    label: `${serverId} GPU %`,
+                    data: payload.timestamps.map((ts, index) => ({ x: ts, y: payload.gpu_util_pct[index] })),
+                    borderColor: serverId === "server2" ? "#a855f7" : "#9ca3af",
+                    backgroundColor: "transparent",
+                    tension: 0.2,
+                });
+            });
+
+            new Chart(timelineCanvas, {
+                type: "line",
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    parsing: false,
+                    plugins: {
+                        legend: { labels: { color: "#475569" } }
+                    },
+                    scales: {
+                        x: {
+                            type: "category",
+                            ticks: {
+                                color: "#64748b",
+                                callback: function(value) {
+                                    const label = this.getLabelForValue(value);
+                                    return label ? label.slice(11, 19) : "";
+                                }
+                            },
+                            grid: { color: "rgba(148,163,184,0.18)" }
+                        },
+                        y: {
+                            ticks: { color: "#64748b" },
+                            grid: { color: "rgba(148,163,184,0.18)" }
+                        }
+                    }
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}

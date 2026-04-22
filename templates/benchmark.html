@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t("benchmark.title") }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="card relative overflow-hidden">
+        <div class="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-violet-100/70 to-transparent pointer-events-none"></div>
+        <div class="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <div class="text-[0.7rem] uppercase tracking-[0.24em] text-violet-500 font-semibold">{{ t("benchmark.eyebrow") }}</div>
+                <h3 class="mt-3 text-3xl font-semibold text-slate-900 leading-tight">{{ t("benchmark.hero_title") }}</h3>
+                <p class="mt-2 text-sm text-slate-600 max-w-2xl">
+                    {{ t("benchmark.hero_body") }}
+                </p>
+            </div>
+            <div class="surface-muted rounded-2xl px-4 py-3 text-sm text-slate-600 max-w-sm">
+                {{ t("benchmark.hero_note") }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">{{ t("benchmark.discover_title") }}</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div class="lg:col-span-3">
+                <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.server_ip") }}</label>
+                <input
+                    type="text"
+                    id="discover-server-ip"
+                    class="w-full"
+                    placeholder="{{ t('benchmark.ip_placeholder') }}"
+                >
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 mb-4">
+            <button id="btn-discover-server" class="btn-primary" onclick="discoverServerConfig()">
+                {{ t("benchmark.discover_button") }}
+            </button>
+            <span class="text-xs text-slate-500">
+                {{ t("benchmark.discover_help") }}
+            </span>
+        </div>
+
+        <div id="discover-server-result" class="hidden rounded-lg border border-primary-900/30 bg-primary-950/10 p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-sm font-medium text-violet-700" id="discover-server-name">{{ t("benchmark.discovered_server") }}</div>
+                <div class="text-xs text-slate-500" id="discover-server-sources">{{ t("benchmark.sources") }}: --</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.agent_url") }}</div>
+                    <div class="text-slate-700 break-all" id="discover-agent-url">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.ollama_url") }}</div>
+                    <div class="text-slate-700 break-all" id="discover-ollama-url">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("servers.gpu") }}</div>
+                    <div class="text-slate-700" id="discover-gpu-name">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("servers.vram") }}</div>
+                    <div class="text-slate-700" id="discover-vram">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.cpu") }}</div>
+                    <div class="text-slate-700" id="discover-cpu-model">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.cpu_cores") }}</div>
+                    <div class="text-slate-700" id="discover-cpu-cores">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.ram") }}</div>
+                    <div class="text-slate-700" id="discover-ram">--</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500">{{ t("benchmark.models") }}</div>
+                    <div class="text-slate-700" id="discover-models">--</div>
+                </div>
+            </div>
+            <div class="mt-3 text-xs text-yellow-300 hidden" id="discover-server-errors"></div>
+        </div>
+    </div>
+
+    <!-- Config Form -->
+    <div class="card">
+        <div class="card-header">{{ t("benchmark.run_configuration") }}</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Suite -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.test_suite") }}</label>
+                <select id="bench-suite" class="w-full">
+                    <option value="all">{{ t("benchmark.all_suites") }}</option>
+                    {% for name, suite in config.benchmark.test_suites.items() %}
+                        {% if suite.enabled %}
+                        <option value="{{ name }}">{{ name|replace('_',' ')|title }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Server -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.target_server") }}</label>
+                <select id="bench-server" class="w-full">
+                    <option value="all">{{ t("benchmark.both_servers") }}</option>
+                    {% for server_id, server in config.servers.items() %}
+                    <option value="{{ server_id }}">{{ server.name }}</option>
+                    {% endfor %}
+                    <option value="custom">{{ t("benchmark.discovered_target") }}</option>
+                </select>
+            </div>
+
+            <!-- Environment -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.environment") }}</label>
+                <select id="bench-env" class="w-full">
+                    {% for env_id, env in config.environments.items() %}
+                        {% if env.enabled %}
+                        <option value="{{ env_id }}">{{ env.name }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Model -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.model") }}</label>
+                <select id="bench-model" class="w-full" disabled>
+                    {% for model in config.models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="mb-6">
+            <label class="block text-xs text-gray-400 mb-2">{{ t("benchmark.notes_optional") }}</label>
+            <input type="text" id="bench-notes" class="w-full"
+                   placeholder="{{ t('benchmark.notes_placeholder') }}">
+        </div>
+
+        <!-- Advanced Options & Tags -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">Advanced Options</label>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Warmup Requests</span>
+                        <input type="number" id="bench-warmup" class="w-24 px-2 py-1" value="{{ config.benchmark.warmup_requests }}">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Repeat Count</span>
+                        <input type="number" id="bench-repeat" class="w-24 px-2 py-1" value="1">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Concurrency Levels</span>
+                        <input type="text" id="bench-concurrency" class="w-32 px-2 py-1" value="{{ config.benchmark.concurrency_levels|join(', ') }}">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Request Timeout (s)</span>
+                        <input type="number" id="bench-timeout" class="w-24 px-2 py-1" value="120">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Cooldown Between (s)</span>
+                        <input type="number" id="bench-cooldown" class="w-24 px-2 py-1" value="{{ config.benchmark.cooldown_seconds }}">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-2">Tags (optional)</label>
+                <input type="text" id="bench-tags" class="w-full mb-2" placeholder="e.g. production, v2.0">
+                <div class="text-[0.65rem] text-slate-500">Comma separated. Tags help you filter runs in History.</div>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <div class="flex items-center gap-4">
+            <button id="btn-start-benchmark" class="btn-primary" onclick="startBenchmark()">
+                {{ t("benchmark.start_button") }}
+            </button>
+            <span class="text-xs text-slate-500">
+                {{ t("benchmark.start_help") }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="card" id="progress-container" style="display: none;">
+        <div class="card-header">{{ t("benchmark.progress_title") }}</div>
+
+        <div class="space-y-4">
+            <div class="flex justify-between items-start text-sm">
+                <div>
+                    <div class="text-slate-500">Run ID: <span class="font-mono text-violet-600" id="progress-runid">--</span></div>
+                    <div class="text-slate-500 mt-1">Status: <span class="text-yellow-600 font-medium" id="progress-status">Running</span></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-slate-700 font-medium" id="progress-phase">{{ t("benchmark.preparing") }}</div>
+                    <div class="text-xs text-slate-500 mt-1 font-mono" id="progress-current-test">--</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="text-slate-600 font-medium">Progress</span>
+                    <span class="text-slate-600 font-medium"><span id="progress-text">0 / 0</span> (<span id="progress-percent">0</span>%)</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="p-2 rounded-lg border border-slate-200 bg-slate-50">
+                    <div class="text-[0.65rem] text-slate-500 uppercase tracking-wider mb-1">Elapsed</div>
+                    <div class="text-sm font-mono text-slate-700" id="progress-elapsed">00:00</div>
+                </div>
+                <div class="p-2 rounded-lg border border-slate-200 bg-slate-50">
+                    <div class="text-[0.65rem] text-slate-500 uppercase tracking-wider mb-1">Remaining</div>
+                    <div class="text-sm font-mono text-slate-700" id="progress-remaining">--:--</div>
+                </div>
+                <div class="p-2 rounded-lg border border-slate-200 bg-slate-50">
+                    <div class="text-[0.65rem] text-slate-500 uppercase tracking-wider mb-1">ETA</div>
+                    <div class="text-sm font-mono text-slate-700" id="progress-eta">--:--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 mt-6 text-xs">
+            <div class="text-slate-500" id="progress-extra">{{ t("benchmark.waiting_live_metrics") }}</div>
+            <button id="btn-stop-benchmark" class="btn-danger" onclick="stopBenchmark()">
+                {{ t("benchmark.stop_button") }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Tools Overview -->
+    <div class="card">
+        <div class="card-header">{{ t("benchmark.enabled_tools") }}</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="tools-overview-container">
+            {% for tool_name, tool in config.tools.items() %}
+            <div class="p-3 rounded-lg border transition-all duration-300 tool-item
+                {% if tool.enabled %}border-violet-100/80 bg-violet-50 text-violet-700{% else %}border-slate-200 bg-slate-50 text-slate-400 opacity-60{% endif %}"
+                data-tool="{{ tool_name }}"
+                data-enabled="{{ tool.enabled|lower }}"
+                data-suites="{{ tool.supported_suites|join(',') if tool.supported_suites else '' }}">
+                <div class="text-sm font-medium tool-name">
+                    {{ tool_name|replace('_',' ')|title }}
+                </div>
+                <div class="text-xs mt-1 tool-status">
+                    {% if tool.enabled %}{{ t("common.enabled") }}{% else %}{{ t("common.disabled") }}{% endif %}
+                </div>
+                <div class="text-[0.65rem] mt-2 text-slate-500 tool-suites italic">
+                    {% if tool.supported_suites %}
+                        {{ tool.supported_suites|join(', ')|replace('_',' ')|title }}
+                    {% else %}
+                        All Suites
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Test Suites -->
+    <div class="card">
+        <div class="card-header">{{ t("benchmark.test_suites") }}</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t("benchmark.suite") }}</th>
+                    <th>{{ t("common.status") }}</th>
+                    <th>Description</th>
+                    <th>{{ t("benchmark.scenarios") }}</th>
+                    <th>{{ t("benchmark.requests_per_scenario") }}</th>
+                    <th>Parameters</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, suite in config.benchmark.test_suites.items() %}
+                <tr>
+                    <td class="font-medium">{{ name|replace('_',' ')|title }}</td>
+                    <td>
+                        {% if suite.enabled %}
+                        <span class="text-green-600 text-xs font-medium">{{ t("common.enabled") }}</span>
+                        {% else %}
+                        <span class="text-slate-400 text-xs">{{ t("common.disabled") }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-xs text-slate-500 max-w-xs">{{ suite.description or '--' }}</td>
+                    <td class="text-xs text-slate-500">
+                        {% if suite.scenarios %}
+                        <div class="flex flex-wrap gap-1">
+                            {% for s in suite.scenarios %}
+                            <span class="tag">{{ s }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}--{% endif %}
+                    </td>
+                    <td>{{ suite.requests_per_scenario or '--' }}</td>
+                    <td class="text-xs text-slate-500">
+                        {% if suite.duration_seconds %}Duration: {{ suite.duration_seconds }}s{% endif %}
+                        {% if suite.concurrency %} | Concurrency: {{ suite.concurrency }}{% endif %}
+                        {% if suite.pattern %} | Pattern: {{ suite.pattern }}{% endif %}
+                        {% if not suite.duration_seconds and not suite.concurrency and not suite.pattern %}--{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

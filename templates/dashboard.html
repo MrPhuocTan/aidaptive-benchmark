@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t("dashboard.title") }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="grid grid-cols-1 xl:grid-cols-[1.7fr,1fr] gap-6">
+        <div class="card relative overflow-hidden">
+            <div class="absolute inset-y-0 right-0 w-56 bg-gradient-to-l from-violet-100/80 to-transparent pointer-events-none"></div>
+            <div class="relative">
+                <div class="text-[0.7rem] uppercase tracking-[0.24em] text-violet-500 font-semibold mb-3">{{ t("dashboard.eyebrow") }}</div>
+                <h3 class="text-3xl font-semibold text-slate-900 leading-tight max-w-2xl">
+                    {{ t("dashboard.hero_title") }}
+                </h3>
+                <p class="mt-3 text-sm text-slate-600 max-w-2xl">
+                    {{ t("dashboard.hero_body") }}
+                </p>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="/benchmark" class="btn-primary">{{ t("dashboard.cta_start") }}</a>
+                    <a href="/comparison" class="btn-secondary">{{ t("dashboard.cta_compare") }}</a>
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="card">
+                <div class="card-header">{{ t("dashboard.completed_runs") }}</div>
+                <div class="metric-value">{{ recent_runs|selectattr('status', 'equalto', 'completed')|list|length }}</div>
+                <div class="metric-label">{{ t("dashboard.completed_runs_hint") }}</div>
+            </div>
+            <div class="card">
+                <div class="card-header">{{ t("dashboard.active_model_set") }}</div>
+                <div class="metric-value">{{ config.models|length }}</div>
+                <div class="metric-label">{{ t("dashboard.active_model_set_hint") }}</div>
+            </div>
+            <div class="card">
+                <div class="card-header">{{ t("dashboard.enabled_tooling") }}</div>
+                <div class="metric-value">
+                    {{ config.tools.values()|selectattr('enabled')|list|length }}
+                </div>
+                <div class="metric-label">{{ t("dashboard.enabled_tooling_hint") }}</div>
+            </div>
+            <div class="card">
+                <div class="card-header">{{ t("dashboard.live_environments") }}</div>
+                <div class="metric-value">
+                    {{ config.environments.values()|selectattr('enabled')|list|length }}
+                </div>
+                <div class="metric-label">{{ t("dashboard.live_environments_hint") }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Status Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for server_id, server in config.servers.items() %}
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <div class="card-header mb-0">{{ server.name }}</div>
+                    <p class="text-xs text-slate-500 mt-1">{{ server.description }}</p>
+                </div>
+                <span class="status-dot status-offline" id="status-{{ server_id }}"></span>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <div class="metric-value text-lg" id="{{ server_id }}-gpu">--</div>
+                    <div class="metric-label">{{ t("dashboard.gpu_util") }}</div>
+                </div>
+                <div>
+                    <div class="metric-value text-lg" id="{{ server_id }}-vram">--</div>
+                    <div class="metric-label">{{ t("dashboard.vram_used") }}</div>
+                </div>
+                <div>
+                    <div class="metric-value text-lg" id="{{ server_id }}-cost">
+                        ${{ "{:,.0f}".format(server.hardware_cost_usd) }}
+                    </div>
+                    <div class="metric-label">{{ t("dashboard.hardware_cost") }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <div class="card-header mb-0">{{ t("dashboard.recent_tps_trend") }}</div>
+            <span class="text-xs text-slate-500">{{ t("dashboard.built_in_viz") }}</span>
+        </div>
+        <div class="h-72">
+            <canvas id="dashboard-trend-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Runs -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <div class="card-header mb-0">{{ t("dashboard.recent_runs") }}</div>
+            <a href="/history" class="text-xs text-primary-400 hover:text-primary-300">{{ t("common.view_all") }}</a>
+        </div>
+
+        {% if recent_runs %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t("history.run_id") }}</th>
+                    <th>{{ t("common.status") }}</th>
+                    <th>{{ t("benchmark.suite") }}</th>
+                    <th>{{ t("common.environment") }}</th>
+                    <th>{{ t("common.duration") }}</th>
+                    <th>{{ t("common.date") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in recent_runs %}
+                <tr class="cursor-pointer" onclick="window.location='/history/{{ run.run_id }}'">
+                    <td class="font-mono text-xs text-primary-400">{{ run.run_id }}</td>
+                    <td>
+                        {% if run.status == 'completed' %}
+                        <span class="text-green-400">{{ t("common.completed") }}</span>
+                        {% elif run.status == 'running' %}
+                        <span class="text-yellow-400">{{ t("common.running") }}</span>
+                        {% elif run.status == 'failed' %}
+                        <span class="text-red-400">{{ t("common.failed") }}</span>
+                        {% else %}
+                        <span class="text-slate-400">{{ run.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ run.suite or '--' }}</td>
+                    <td>{{ run.environment or '--' }}</td>
+                    <td>
+                        {% if run.duration_seconds %}
+                        {{ "%.1f"|format(run.duration_seconds) }}s
+                        {% else %}--{% endif %}
+                    </td>
+                    <td class="text-xs text-slate-500">
+                        {% if run.started_at %}
+                        {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-slate-500 text-sm py-8 text-center">
+            {{ t("dashboard.empty_runs") }}
+        </p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="dashboard-trend-data">
+{{ trend|tojson }}
+</script>
+<script>
+    (function () {
+        const trendDataElement = document.getElementById("dashboard-trend-data");
+        const trendData = trendDataElement ? JSON.parse(trendDataElement.textContent) : [];
+        const ctx = document.getElementById("dashboard-trend-chart");
+        if (!ctx || !trendData || trendData.length === 0 || typeof Chart === "undefined") {
+            return;
+        }
+
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: trendData.map(item => item.run_id.slice(-6)),
+                datasets: [
+                    {
+                        label: "{{ t('dashboard.chart_server1') }}",
+                        data: trendData.map(item => item.server1_tps),
+                        borderColor: "#9ca3af",
+                        backgroundColor: "rgba(156, 163, 175, 0.15)",
+                        tension: 0.25,
+                    },
+                    {
+                        label: "{{ t('dashboard.chart_server2') }}",
+                        data: trendData.map(item => item.server2_tps),
+                        borderColor: "#a855f7",
+                        backgroundColor: "rgba(168, 85, 247, 0.15)",
+                        tension: 0.25,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: "#475569" } }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: "#64748b" },
+                        grid: { color: "rgba(148,163,184,0.18)" }
+                    },
+                    y: {
+                        ticks: { color: "#64748b" },
+                        grid: { color: "rgba(148,163,184,0.18)" }
+                    }
+                }
+            }
+        });
+    })();
+</script>
+{% endblock %}

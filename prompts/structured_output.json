@@ -1,0 +1,5 @@
+[
+  {"prompt": "Return a JSON object with information about 5 programming languages including 'name', 'year_created', and 'primary_use_case'. Ensure the output is strictly valid JSON."},
+  {"prompt": "Create a markdown table comparing 5 cloud providers (AWS, Google Cloud, Azure, IBM, Oracle) with columns for 'Provider', 'Market Share', 'Key Strength', and 'Free Tier Available'."},
+  {"prompt": "Generate a CSV string with 3 columns (ID, Name, Age) and 5 rows of random person data. Do not include any explanation text outside the CSV."}
+]

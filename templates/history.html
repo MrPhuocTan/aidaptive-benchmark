@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t("history.title") }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-3xl font-semibold text-slate-900">{{ t("history.header") }}</h3>
+            <p class="text-sm text-slate-500 mt-2">{{ t("history.subheader", count=total_runs) }}</p>
+        </div>
+        <a href="/benchmark" class="btn-primary">{{ t("history.new_benchmark") }}</a>
+    </div>
+
+
+
+    <!-- Runs Table -->
+    <div class="card p-0 overflow-hidden">
+        {% if runs %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t("history.run_id") }}</th>
+                    <th>{{ t("common.status") }}</th>
+                    <th>{{ t("benchmark.suite") }}</th>
+                    <th>{{ t("common.environment") }}</th>
+                    <th>{{ t("common.model") }}</th>
+                    <th>{{ t("history.tests") }}</th>
+                    <th>{{ t("common.duration") }}</th>
+                    <th>{{ t("common.date") }}</th>
+                    <th>{{ t("history.tags") }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr id="row-{{ run.run_id }}">
+                    <td>
+                        <a href="/history/{{ run.run_id }}"
+                           class="font-mono text-xs text-violet-700 hover:text-violet-500">
+                            {{ run.run_id }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if run.status == 'completed' %}
+                        <span class="text-green-600 text-xs">{{ t("common.completed") }}</span>
+                        {% elif run.status == 'running' %}
+                        <span class="text-amber-600 text-xs">{{ t("common.running") }}</span>
+                        {% elif run.status == 'failed' %}
+                        <span class="text-red-500 text-xs">{{ t("common.failed") }}</span>
+                        {% else %}
+                        <span class="text-slate-400 text-xs">{{ run.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-sm">{{ run.suite or '--' }}</td>
+                    <td class="text-sm">{{ run.environment or '--' }}</td>
+                    <td class="text-xs text-slate-500">{{ run.model or '--' }}</td>
+                    <td class="text-sm w-40">
+                        <div class="flex items-center justify-between text-[0.65rem] mb-1">
+                            <span class="text-slate-600 font-medium run-progress-text" data-run-id="{{ run.run_id }}">{{ run.completed_tests or 0 }} / {{ run.total_tests or 0 }}</span>
+                            {% set pct = 0 %}
+                            {% if run.total_tests and run.total_tests > 0 %}
+                                {% set pct = (((run.completed_tests or 0) / run.total_tests) * 100)|int %}
+                            {% endif %}
+                            <span class="text-slate-500 run-progress-pct" data-run-id="{{ run.run_id }}">{{ pct }}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            {% set pct_style = 'style="width: ' ~ pct ~ '%"' %}
+                            {% if run.status == 'completed' %}
+                            <div class="bg-green-500 h-1.5 rounded-full" {{ pct_style|safe }}></div>
+                            {% elif run.status == 'failed' %}
+                            <div class="bg-red-500 h-1.5 rounded-full" {{ pct_style|safe }}></div>
+                            {% elif run.status == 'running' %}
+                            <div class="bg-violet-500 h-1.5 rounded-full run-progress-bar" data-run-id="{{ run.run_id }}" {{ pct_style|safe }}></div>
+                            {% else %}
+                            <div class="bg-slate-400 h-1.5 rounded-full" {{ pct_style|safe }}></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="text-sm">
+                        {% if run.duration_seconds %}
+                        {{ "%.1f"|format(run.duration_seconds) }}s
+                        {% else %}--{% endif %}
+                    </td>
+                    <td class="text-xs text-slate-500">
+                        {% if run.started_at %}
+                        {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if run.tags %}
+                            {% for tag in run.tags %}
+                            <span class="tag">{{ tag }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="flex gap-2">
+                            <button onclick="exportCSV('{{ run.run_id }}')"
+                                    class="text-xs text-slate-500 hover:text-violet-600">
+                                CSV
+                            </button>
+                            <button onclick="deleteRun('{{ run.run_id }}')"
+                                    class="text-xs text-slate-500 hover:text-red-500">
+                                Del
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="p-4 border-t border-gray-900 flex justify-center">
+            <div class="pagination">
+                {% if current_page > 1 %}
+                <a href="/history?page_num={{ current_page - 1 }}{% if lang %}&lang={{ lang }}{% endif %}">{{ t("history.prev") }}</a>
+                {% endif %}
+
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == current_page %}
+                    <span class="current">{{ p }}</span>
+                    {% else %}
+                    <a href="/history?page_num={{ p }}{% if lang %}&lang={{ lang }}{% endif %}">{{ p }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if current_page < total_pages %}
+                <a href="/history?page_num={{ current_page + 1 }}{% if lang %}&lang={{ lang }}{% endif %}">{{ t("history.next") }}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="p-12 text-center text-slate-500">
+            <p class="text-sm">{{ t("history.empty") }}</p>
+            <a href="/benchmark" class="btn-primary mt-4 inline-block">{{ t("history.start_first") }}</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

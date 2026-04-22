@@ -1,0 +1,150 @@
+app:
+  name: "aiDaptive Benchmark Suite"
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 8443
+
+postgres:
+  host: "localhost"
+  port: 5432
+  database: "aidaptive_benchmark"
+  user: "aidaptive"
+  password: "aidaptive2024"
+
+influxdb:
+  url: "http://localhost:8086"
+  token: "aidaptive-benchmark-token"
+  org: "aidaptive"
+  bucket: "benchmarks"
+
+grafana:
+  url: "http://localhost:3000"
+  admin_user: "admin"
+  admin_password: "aidaptive2024"
+
+servers:
+  server1:
+    name: "VM01 - Native High-End"
+    description: "High-end GPU Server - Native Hardware"
+    ollama_url: "http://35.186.159.250:11434"
+    agent_url: "http://35.186.159.250:9100"
+    hardware_cost_usd: 50000
+    monthly_power_usd: 500
+
+  server2:
+    name: "VM02 - Standard + aiDaptive"
+    description: "Mid-range GPU Server with aiDaptive Solution"
+    ollama_url: "http://34.142.222.133:11434"
+    agent_url: "http://34.142.222.133:9100"
+    hardware_cost_usd: 15000
+    monthly_power_usd: 200
+
+models:
+  - "llama3.2-deterministic:latest"
+
+environments:
+  lan:
+    name: "GCloud Direct"
+    server1_url: "http://35.186.159.250:11434"
+    server2_url: "http://34.142.222.133:11434"
+    enabled: true
+
+  vpn:
+    name: "VPN Tunnel"
+    server1_url: "http://10.8.0.1:11434"
+    server2_url: "http://10.8.0.2:11434"
+    enabled: false
+
+  nat:
+    name: "NAT Port Forward"
+    server1_url: "http://35.186.159.250:11434"
+    server2_url: "http://34.142.222.133:11434"
+    enabled: false
+
+  reverse_proxy:
+    name: "Reverse Proxy"
+    server1_url: "https://s1.ai.company.com/v1"
+    server2_url: "https://s2.ai.company.com/v1"
+    enabled: false
+
+benchmark:
+  warmup_requests: 3
+  cooldown_seconds: 10
+  concurrency_levels: [1, 5, 10, 25, 50]
+
+  test_suites:
+    single_request:
+      enabled: true
+      description: "Measure per-request latency (TTFT, TPOT, TPS) across diverse prompt scenarios"
+      scenarios:
+        - "simple_chat"
+        - "code_generation"
+        - "long_context"
+        - "long_output"
+        - "structured_output"
+        - "multi_turn"
+        - "reasoning"
+        - "translation"
+        - "summarization"
+      requests_per_scenario: 50
+      concurrency: 1
+
+    concurrency_scaling:
+      enabled: true
+      description: "Measure metrics across different concurrency levels (1, 8, 16, 32, 64, 256) for charts"
+      scenarios:
+        - "simple_chat"
+        - "long_context"
+        - "long_output"
+      requests_per_scenario: 10
+      duration_seconds: 30
+      concurrency_levels: [1, 8, 16, 32, 64, 256]
+
+    concurrent_load:
+      enabled: true
+      description: "Measure RPS and P99 latency under concurrent request load"
+      scenarios:
+        - "simple_chat"
+        - "code_generation"
+        - "structured_output"
+        - "reasoning"
+        - "translation"
+      requests_per_scenario: 30
+      concurrency: 10
+      duration_seconds: 120
+
+
+
+tools:
+  ollama_native:
+    enabled: true
+    supported_suites: ["single_request"]
+  llmperf:
+    enabled: true
+    supported_suites: ["single_request", "concurrent_load", "concurrency_scaling"]
+  litellm:
+    enabled: true
+    supported_suites: ["single_request", "concurrency_scaling"]
+  locust:
+    enabled: true
+    supported_suites: ["concurrent_load", "concurrency_scaling"]
+  k6:
+    enabled: true
+    binary_path: "k6"
+    supported_suites: ["concurrent_load", "concurrency_scaling"]
+  oha:
+    enabled: true
+    binary_path: "oha"
+    supported_suites: ["concurrent_load", "concurrency_scaling"]
+  vllm_bench:
+    enabled: true
+    supported_suites: ["single_request", "concurrent_load", "concurrency_scaling"]
+
+metrics:
+  gpu_poll_interval_seconds: 1
+  system_poll_interval_seconds: 5
+
+reports:
+  output_dir: "./reports"
+  generate_pdf: true
+  generate_csv: true

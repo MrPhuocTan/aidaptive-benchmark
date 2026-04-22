@@ -1,0 +1,12 @@
+[
+  {"prompt": "What is the capital of France?"},
+  {"prompt": "Explain quantum computing in simple terms."},
+  {"prompt": "Write a haiku about programming."},
+  {"prompt": "What are the benefits of exercise?"},
+  {"prompt": "How does photosynthesis work?"},
+  {"prompt": "Tell me a short joke about a programmer."},
+  {"prompt": "What is the distance between the Earth and the Moon?"},
+  {"prompt": "Can you give me a recipe for chocolate chip cookies?"},
+  {"prompt": "Translate 'Hello, how are you?' to Spanish."},
+  {"prompt": "Who wrote Romeo and Juliet?"}
+]

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t("reports.title") }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-3xl font-semibold text-slate-900">{{ t("reports.header") }}</h3>
+            <p class="text-sm text-slate-500 mt-2">{{ t("reports.subheader") }}</p>
+        </div>
+    </div>
+
+    {% if runs %}
+    <div class="card p-0 overflow-hidden">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t("history.run_id") }}</th>
+                    <th>{{ t("common.date") }}</th>
+                    <th>{{ t("benchmark.suite") }}</th>
+                    <th>{{ t("common.environment") }}</th>
+                    <th>{{ t("common.duration") }}</th>
+                    <th>{{ t("common.actions") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in runs %}
+                <tr>
+                    <td>
+                        <a href="/reports/{{ run.run_id }}"
+                           class="font-mono text-xs text-violet-700 hover:text-violet-500">
+                            {{ run.run_id }}
+                        </a>
+                    </td>
+                    <td class="text-xs text-slate-500">
+                        {% if run.started_at %}
+                        {{ run.started_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </td>
+                    <td class="text-sm">{{ run.suite or '--' }}</td>
+                    <td class="text-sm">{{ run.environment or '--' }}</td>
+                    <td class="text-sm">
+                        {% if run.duration_seconds %}
+                        {{ "%.1f"|format(run.duration_seconds) }}s
+                        {% else %}--{% endif %}
+                    </td>
+                    <td>
+                        <div class="flex gap-3">
+                            <button onclick="exportCSV('{{ run.run_id }}')"
+                                    class="btn-secondary text-xs py-1 px-3">
+                                {{ t("common.export_csv") }}
+                            </button>
+                            <a href="/reports/{{ run.run_id }}/download"
+                               class="btn-primary text-xs py-1 px-3">
+                                Download
+                            </a>
+                            <a href="/reports/{{ run.run_id }}"
+                               class="btn-secondary text-xs py-1 px-3">
+                                {{ t("common.view_details") }}
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card">
+        <p class="text-slate-500 text-sm text-center py-12">
+            {{ t("reports.empty") }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">{{ t("reports.workflow") }}</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="surface-muted rounded-2xl p-4">
+                <div class="font-semibold text-slate-900">{{ t("reports.step1_title") }}</div>
+                <div class="mt-2 text-slate-600">{{ t("reports.step1_body") }}</div>
+            </div>
+            <div class="surface-muted rounded-2xl p-4">
+                <div class="font-semibold text-slate-900">{{ t("reports.step2_title") }}</div>
+                <div class="mt-2 text-slate-600">{{ t("reports.step2_body") }}</div>
+            </div>
+            <div class="surface-muted rounded-2xl p-4">
+                <div class="font-semibold text-slate-900">{{ t("reports.step3_title") }}</div>
+                <div class="mt-2 text-slate-600">{{ t("reports.step3_body") }}</div>
+            </div>
+        </div>
+        <div class="mt-5">
+            <a href="{{ config.grafana.url }}" target="_blank" class="btn-secondary">
+                {{ t("reports.open_grafana") }}
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

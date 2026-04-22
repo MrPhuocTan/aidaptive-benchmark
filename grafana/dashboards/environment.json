@@ -1,0 +1,144 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "TTFT by Environment",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "aidaptive-influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "server1" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#6b7280", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "server2" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#a855f7", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "always",
+        "groupWidth": 0.7,
+        "barWidth": 0.8
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"benchmarks\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"benchmark_results\")\n  |> filter(fn: (r) => r._field == \"ttft_ms\")\n  |> group(columns: [\"server\", \"environment\"])\n  |> mean()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "TPS by Environment",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "datasource": { "type": "influxdb", "uid": "aidaptive-influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "tokens/s"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "server1" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#6b7280", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "server2" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#a855f7", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "always",
+        "groupWidth": 0.7,
+        "barWidth": 0.8
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"benchmarks\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"benchmark_results\")\n  |> filter(fn: (r) => r._field == \"tps\")\n  |> group(columns: [\"server\", \"environment\"])\n  |> mean()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "P99 Latency by Environment",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "influxdb", "uid": "aidaptive-influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "server1" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#6b7280", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "server2" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#a855f7", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "showValue": "always",
+        "groupWidth": 0.7,
+        "barWidth": 0.8
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"benchmarks\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"benchmark_results\")\n  |> filter(fn: (r) => r._field == \"latency_p99_ms\")\n  |> group(columns: [\"server\", \"environment\"])\n  |> mean()",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Network Overhead by Environment",
+      "description": "Shows how much additional latency each network path adds compared to LAN",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
+      "datasource": { "type": "influxdb", "uid": "aidaptive-influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"benchmarks\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"benchmark_results\")\n  |> filter(fn: (r) => r._field == \"ttft_ms\")\n  |> group(columns: [\"server\", \"environment\"])\n  |> mean()\n  |> pivot(rowKey: [\"environment\"], columnKey: [\"server\"], valueColumn: \"_value\")",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["aidaptive", "benchmark", "environment"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "aiDaptive - Environment Comparison",
+  "uid": "aidaptive-environment"
+}

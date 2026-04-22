@@ -1,0 +1,10 @@
+[
+  {"prompt": "Write a Python function to sort a list using merge sort."},
+  {"prompt": "Create a REST API endpoint in FastAPI that handles user registration."},
+  {"prompt": "Write a binary search algorithm in Python."},
+  {"prompt": "How do I reverse a linked list in C++?"},
+  {"prompt": "Write a SQL query to find the second highest salary in an Employee table."},
+  {"prompt": "Create a React component for a to-do list."},
+  {"prompt": "Write a bash script to backup a directory to a tar.gz archive."},
+  {"prompt": "Implement a caching mechanism using Redis and Python."}
+]

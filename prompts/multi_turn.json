@@ -1,0 +1,5 @@
+[
+  {"prompt": "You are helping plan a Vietnam travel itinerary. First, ask 3 clarifying questions."},
+  {"prompt": "Act as a coding assistant. First explain how to design a rate limiter, then suggest a Redis-based implementation."},
+  {"prompt": "Let's play a roleplay game. You are a wizard in a medieval town. Introduce yourself and ask what I want to buy."}
+]
