@@ -47,7 +47,10 @@ class LocustAdapter(BaseToolAdapter):
             )
             return [result]
 
-        prompts_payload = [item.get("prompt", "Hello") for item in prompts] or ["Hello"]
+        prompts_payload = [
+            item.get("prompt", "Hello") if isinstance(item, dict) else str(item)
+            for item in prompts
+        ] or ["Hello"]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
