@@ -54,12 +54,7 @@ async function pollStatus() {
                 : "w-2 h-2 rounded-full bg-red-500";
         }
 
-        const influxDot = document.getElementById("influx-status");
-        if (influxDot) {
-            influxDot.className = data.influxdb
-                ? "w-2 h-2 rounded-full bg-green-500"
-                : "w-2 h-2 rounded-full bg-red-500";
-        }
+
 
     } catch (e) {
         console.error(t("js.status_poll_error"), e);

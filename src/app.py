@@ -550,20 +550,6 @@ async def page_comparison(
     )
 
 
-# --------------------------------------------------
-# Page: Settings
-# --------------------------------------------------
-@app.get("/settings", response_class=HTMLResponse)
-async def page_settings(request: Request):
-    return _render(
-        request,
-        "settings.html",
-        {
-            "page": "settings",
-            "config": config,
-        },
-    )
-
 
 # --------------------------------------------------
 # API: Status

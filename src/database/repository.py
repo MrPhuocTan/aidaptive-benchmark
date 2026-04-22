@@ -111,6 +111,42 @@ class Repository:
         self.session.add(comparison)
         self.session.commit()
 
+    # --- Prompt Management (Sync) ---
+    def create_prompt_set(self, name: str, description: str = "") -> PromptSet:
+        pset = PromptSet(name=name, description=description)
+        self.session.add(pset)
+        self.session.commit()
+        self.session.refresh(pset)
+        return pset
+
+    def get_prompt_sets(self) -> list[PromptSet]:
+        return self.session.query(PromptSet).order_by(PromptSet.id.desc()).all()
+
+    def get_prompt_set_by_id(self, pset_id: int) -> Optional[PromptSet]:
+        return self.session.query(PromptSet).filter(PromptSet.id == pset_id).first()
+
+    def delete_prompt_set(self, pset_id: int):
+        pset = self.session.query(PromptSet).filter(PromptSet.id == pset_id).first()
+        if pset:
+            self.session.delete(pset)
+            self.session.commit()
+
+    def add_prompts_to_set(self, pset_id: int, prompts: list[dict]):
+        for p in prompts:
+            entry = PromptEntry(
+                prompt_set_id=pset_id,
+                scenario=p["scenario"],
+                prompt_text=p["prompt_text"]
+            )
+            self.session.add(entry)
+        self.session.commit()
+
+    def get_prompts_by_set_and_scenario(self, pset_id: int, scenario: str) -> list[PromptEntry]:
+        return self.session.query(PromptEntry).filter(
+            PromptEntry.prompt_set_id == pset_id,
+            PromptEntry.scenario == scenario
+        ).all()
+
 
 class AsyncRepository:
     """Async repository for web app"""
@@ -397,38 +433,4 @@ class AsyncRepository:
         )
         return result.scalar_one_or_none()
 
-    # --- Prompt Management (Sync) ---
-    def create_prompt_set(self, name: str, description: str = "") -> PromptSet:
-        pset = PromptSet(name=name, description=description)
-        self.session.add(pset)
-        self.session.commit()
-        self.session.refresh(pset)
-        return pset
 
-    def get_prompt_sets(self) -> list[PromptSet]:
-        return self.session.query(PromptSet).order_by(PromptSet.id.desc()).all()
-
-    def get_prompt_set_by_id(self, pset_id: int) -> Optional[PromptSet]:
-        return self.session.query(PromptSet).filter(PromptSet.id == pset_id).first()
-
-    def delete_prompt_set(self, pset_id: int):
-        pset = self.session.query(PromptSet).filter(PromptSet.id == pset_id).first()
-        if pset:
-            self.session.delete(pset)
-            self.session.commit()
-
-    def add_prompts_to_set(self, pset_id: int, prompts: list[dict]):
-        for p in prompts:
-            entry = PromptEntry(
-                prompt_set_id=pset_id,
-                scenario=p["scenario"],
-                prompt_text=p["prompt_text"]
-            )
-            self.session.add(entry)
-        self.session.commit()
-
-    def get_prompts_by_set_and_scenario(self, pset_id: int, scenario: str) -> list[PromptEntry]:
-        return self.session.query(PromptEntry).filter(
-            PromptEntry.prompt_set_id == pset_id,
-            PromptEntry.scenario == scenario
-        ).all()
