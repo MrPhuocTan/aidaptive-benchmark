@@ -17,7 +17,6 @@ class ToolName(str, Enum):
     LLMPERF = "llmperf"
     LITELLM = "litellm"
     LOCUST = "locust"
-    K6 = "k6"
     OHA = "oha"
     VLLM_BENCH = "vllm_bench"
 

@@ -128,10 +128,7 @@ tools:
   locust:
     enabled: true
     supported_suites: ["concurrent_load", "concurrency_scaling"]
-  k6:
-    enabled: true
-    binary_path: "k6"
-    supported_suites: ["concurrent_load", "concurrency_scaling"]
+
   oha:
     enabled: true
     binary_path: "oha"

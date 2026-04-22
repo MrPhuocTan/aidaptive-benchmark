@@ -25,7 +25,7 @@ The **Benchmark AI Server System** is designed to compare LLM inference performa
 
 ### 2.2 Main Features
 - **Server Monitoring:** Auto-scans hardware (GPU, CPU, VRAM) via remote agents.
-- **Multi-tool Benchmark:** Supports 7 tools (Ollama, Oha, K6, Locust, LLMPerf, vLLM, LiteLLM).
+- **Multi-tool Benchmark:** Supports 6 tools (Ollama, Oha, Locust, LLMPerf, vLLM, LiteLLM).
 - **Automated Comparison:** Calculates Δ% (Delta) between servers to determine the winner.
 - **Reporting:** Generates real-time charts (Chart.js) and downloadable PDF/CSV reports.
 
@@ -68,7 +68,7 @@ The frontend uses **Jinja2** templates with **Tailwind CSS**. All templates exte
 |:---|:---|
 | `src/app.py` | Main Web Application; handles routing, Jinja2 rendering, and background task initialization. |
 | `src/orchestrator.py` | **Core Lifecycle Controller**; manages Preflight, Warmup, Monitoring, and Execution phases. |
-| `src/adapters/` | Tool abstraction layer; contains `ollama`, `oha`, `k6`, `locust`, `llmperf`, `vllm_bench` adapters. |
+| `src/adapters/` | Tool abstraction layer; contains `ollama`, `oha`, `locust`, `llmperf`, `vllm_bench` adapters. |
 | `src/collectors/` | Connectivity layer; probes remote agents and polls hardware metrics in background threads. |
 | `src/data/` | Data pipeline; handles normalization, aggregation, and multi-backend broadcasting. |
 | `src/database/` | Storage layer; defines ORM models, session management, and CRUD repositories. |
@@ -131,7 +131,7 @@ graph TD
 
 ## 9. Interface / Abstract Map
 
-| Interface | Method | OllamaAdapter Implementation | Oha / K6 / Locust Implementation |
+| Interface | Method | OllamaAdapter Implementation | Oha / Locust Implementation |
 |:---|:---|:---|:---|
 | `BaseToolAdapter` | `run(prompts)` | Native Python loop with `httpx` | Spawns Subprocess ([TODO: needs verify binary path]) |
 | | `is_available()` | Always `True` | `shutil.which(binary)` check |

@@ -12,11 +12,7 @@ echo "Installing OHA..."
 sudo wget -q https://github.com/hatoo/oha/releases/latest/download/oha-linux-amd64 -O /usr/local/bin/oha
 sudo chmod +x /usr/local/bin/oha
 
-echo "Installing K6..."
-sudo wget -q https://github.com/grafana/k6/releases/download/v0.56.0/k6-v0.56.0-linux-amd64.tar.gz
-sudo tar -xzf k6-v0.56.0-linux-amd64.tar.gz
-sudo mv k6-v0.56.0-linux-amd64/k6 /usr/local/bin/k6
-sudo chmod +x /usr/local/bin/k6
+
 
 echo "Cloning repository..."
 rm -rf aidaptive-benchmark

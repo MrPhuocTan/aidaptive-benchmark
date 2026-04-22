@@ -27,7 +27,7 @@ The **aiDaptive Benchmark Suite** is an advanced AI performance measurement tool
 | Feature | Description |
 | :--- | :--- |
 | **Server Monitoring** | Automated hardware scanning and real-time system status tracking. |
-| **Multi-tool Benchmark**| Native support for 7 benchmarking tools (Ollama, Oha, K6, Locust, LLMPerf, vLLM, LiteLLM). |
+| **Multi-tool Benchmark**| Native support for 6 benchmarking tools (Ollama, Oha, Locust, LLMPerf, vLLM, LiteLLM). |
 | **Automated Comparison** | Automatic calculation of performance differentials (`Δ%`) to determine the optimal configuration. |
 | **Built-in Visualization**| Interactive Chart.js integration embedded directly within the user interface. |
 | **History & Reports** | Persistent test execution history with comprehensive PDF/CSV export capabilities. |

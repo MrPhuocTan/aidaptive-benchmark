@@ -3,7 +3,6 @@
 from src.adapters.base import BaseToolAdapter
 from src.adapters.ollama_adapter import OllamaAdapter
 from src.adapters.oha_adapter import OhaAdapter
-from src.adapters.k6_adapter import K6Adapter
 from src.adapters.litellm_adapter import LiteLLMAdapter
 from src.adapters.locust_adapter import LocustAdapter
 from src.adapters.llmperf_adapter import LLMPerfAdapter
@@ -13,7 +12,6 @@ __all__ = [
     "BaseToolAdapter",
     "OllamaAdapter",
     "OhaAdapter",
-    "K6Adapter",
     "LiteLLMAdapter",
     "LocustAdapter",
     "LLMPerfAdapter",

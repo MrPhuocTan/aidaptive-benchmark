@@ -16,7 +16,6 @@ from src.data.data_sink import DataSink
 # Import all adapters
 from src.adapters.ollama_adapter import OllamaAdapter
 from src.adapters.oha_adapter import OhaAdapter
-from src.adapters.k6_adapter import K6Adapter
 from src.adapters.litellm_adapter import LiteLLMAdapter
 from src.adapters.locust_adapter import LocustAdapter
 from src.adapters.llmperf_adapter import LLMPerfAdapter
@@ -114,7 +113,6 @@ class Orchestrator:
         tool_mapping = {
             "ollama_native": OllamaAdapter,
             "oha": OhaAdapter,
-            "k6": K6Adapter,
             "litellm": LiteLLMAdapter,
             "locust": LocustAdapter,
             "llmperf": LLMPerfAdapter,
@@ -185,16 +183,6 @@ class Orchestrator:
                 kwargs["binary_path"] = binary_path
             return adapter_class(**kwargs)
 
-        elif tool_name == "k6":
-            kwargs = {
-                "ollama_url": target_url,
-                "model": model,
-                "concurrency": concurrency,
-                "duration": duration,
-            }
-            if binary_path:
-                kwargs["binary_path"] = binary_path
-            return adapter_class(**kwargs)
 
         elif tool_name == "litellm":
             return adapter_class(ollama_url=target_url, model=model)
