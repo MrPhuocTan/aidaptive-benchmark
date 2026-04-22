@@ -189,4 +189,7 @@ python -m src
 ## Support & Contact
 For platform inquiries, infrastructure support, or architectural discussions, contact the engineering team.
 
+**Author & Credits:**
+MrPhuocTan - Ted.trinh@tpisoftware.com - 097.201.2901
+
 *aiDaptive Benchmark Suite - © 2026 MrPhuocTan. All rights reserved.*

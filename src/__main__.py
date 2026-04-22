@@ -26,9 +26,10 @@ console = Console()
 def print_banner():
     banner = (
         "\n"
-        "    +----------------------------------------------+\n"
-        "    |       aiDaptive Benchmark Suite v1.0.0       |\n"
-        "    +----------------------------------------------+\n"
+        "    +--------------------------------------------------------------+\n"
+        "    |               aiDaptive Benchmark Suite v1.0.0               |\n"
+        "    |   By MrPhuocTan - Ted.trinh@tpisoftware.com - 097.201.2901   |\n"
+        "    +--------------------------------------------------------------+\n"
     )
     console.print(banner, style="bold purple")
 
