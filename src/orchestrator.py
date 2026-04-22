@@ -492,6 +492,13 @@ class Orchestrator:
             self._progress["live_metrics"] = self._live_metrics.copy()
 
             repo = self.data_sink.get_repository()
+            
+            prompt_set_name = "Default (System)"
+            if prompt_set_id:
+                pset = repo.get_prompt_set_by_id(prompt_set_id)
+                if pset:
+                    prompt_set_name = pset.name
+                    
             if not resume_from_db:
                 repo.create_run(
                     run_id=run_id,
@@ -502,6 +509,8 @@ class Orchestrator:
                         "suite": suite,
                         "servers": target_servers,
                         "environment": environment,
+                        "prompt_set": prompt_set_name,
+                        "prompt_set_id": prompt_set_id,
                     },
                     notes=notes,
                     tags=tags or [],

@@ -52,11 +52,18 @@
 
     {% if report_data %}
     <!-- Metadata Summary -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div class="card p-4">
             <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t("report_details.test_suite") }}</h4>
             <div class="text-lg font-bold text-violet-700">{{ run.suite | replace('_', ' ') | title }}</div>
             <p class="text-[10px] text-slate-400 mt-1 leading-tight">{{ run.suite }} suite execution</p>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t("nav.prompts") }}</h4>
+            <div class="text-lg font-bold text-slate-900 truncate" title="{{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}">
+                {{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1 leading-tight">Prompt Dataset</p>
         </div>
         <div class="card p-4">
             <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{{ t("report_details.servers_evaluated") }}</h4>

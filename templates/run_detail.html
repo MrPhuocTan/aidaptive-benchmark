@@ -22,7 +22,7 @@
     </div>
 
     <!-- Header -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-6 md:grid-cols-3 gap-4">
         <div class="card text-center">
             <div class="card-header">{{ t("common.status") }}</div>
             <div class="text-lg font-semibold
@@ -47,6 +47,12 @@
         <div class="card text-center">
             <div class="card-header">{{ t("common.model") }}</div>
             <div class="text-lg font-semibold text-slate-900">{{ run.model or '--' }}</div>
+        </div>
+        <div class="card text-center">
+            <div class="card-header">{{ t("nav.prompts") }}</div>
+            <div class="text-lg font-semibold text-slate-900 truncate" title="{{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}">
+                {{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}
+            </div>
         </div>
         <div class="card text-center">
             <div class="card-header">{{ t("history.tests") }}</div>

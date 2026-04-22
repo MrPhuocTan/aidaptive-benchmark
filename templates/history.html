@@ -26,6 +26,7 @@
                     <th>{{ t("benchmark.suite") }}</th>
                     <th>{{ t("common.environment") }}</th>
                     <th>{{ t("common.model") }}</th>
+                    <th>{{ t("nav.prompts") }}</th>
                     <th>{{ t("history.tests") }}</th>
                     <th>{{ t("common.duration") }}</th>
                     <th>{{ t("common.date") }}</th>
@@ -56,6 +57,9 @@
                     <td class="text-sm">{{ run.suite or '--' }}</td>
                     <td class="text-sm">{{ run.environment or '--' }}</td>
                     <td class="text-xs text-slate-500">{{ run.model or '--' }}</td>
+                    <td class="text-xs text-slate-500 truncate" style="max-width: 120px;" title="{{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}">
+                        {{ run.config_snapshot.get('prompt_set', 'Default') if run.config_snapshot else 'Default' }}
+                    </td>
                     <td class="text-sm w-40">
                         <div class="flex items-center justify-between text-[0.65rem] mb-1">
                             <span class="text-slate-600 font-medium run-progress-text" data-run-id="{{ run.run_id }}">{{ run.completed_tests or 0 }} / {{ run.total_tests or 0 }}</span>
