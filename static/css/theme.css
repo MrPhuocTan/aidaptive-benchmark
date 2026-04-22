@@ -354,6 +354,15 @@ body {
     border-collapse: collapse;
 }
 
+@media (max-width: 768px) {
+    table, .data-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
 .data-table th {
     text-align: left;
     font-size: 0.75rem;

@@ -21,7 +21,7 @@
                 </div>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card">
                 <div class="card-header">{{ t("dashboard.completed_runs") }}</div>
                 <div class="metric-value">{{ recent_runs|selectattr('status', 'equalto', 'completed')|list|length }}</div>
