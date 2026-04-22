@@ -228,9 +228,17 @@ class Orchestrator:
 
         for server_id in servers_to_test:
             server_cfg = self.config.servers.get(server_id)
-            client = self.agent_clients.get(server_id)
-            if not server_cfg or not client:
+            if not server_cfg:
                 raise ValueError(f"Server '{server_id}' not found in config")
+            
+            client = self.agent_clients.get(server_id)
+            if not client:
+                client = AgentClient(
+                    agent_url=server_cfg.agent_url,
+                    ollama_url=server_cfg.ollama_url,
+                    server_id=server_id,
+                )
+                self.agent_clients[server_id] = client
 
             target_url = getattr(env_cfg, f"{server_id}_url", "") or server_cfg.ollama_url
             if not target_url:
