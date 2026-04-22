@@ -182,7 +182,7 @@ pip install -r requirements.txt
 # Start the application server
 python -m src
 ```
-*The Web UI will be accessible at `http://localhost:8000`*
+*The Web UI will be accessible at `http://localhost:8443`*
 
 ---
 
