@@ -243,7 +243,8 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!arr) return [];
             return arr.map((val, i) => {
                 if (val === null) return null;
-                return divideByConcurrency && labels[i] > 0 ? val / labels[i] : val;
+                const yVal = divideByConcurrency && labels[i] > 0 ? val / labels[i] : val;
+                return { x: labels[i], y: yVal };
             });
         }
         
