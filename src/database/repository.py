@@ -242,8 +242,14 @@ class AsyncRepository:
         return result.scalars().all()
 
     async def get_run_summary_stats(self, run_id: str) -> dict:
+        servers_res = await self.session.execute(
+            select(BenchmarkResultRow.server).filter_by(run_id=run_id).distinct()
+        )
+        run_servers = sorted([row[0] for row in servers_res.all() if row[0]])
+        
         summary = {}
-        for server in ["server1", "server2"]:
+        for i, server in enumerate(run_servers[:2]):
+            key = f"server{i+1}"
             result = await self.session.execute(
                 select(
                     func.avg(BenchmarkResultRow.ttft_ms).label("avg_ttft"),
@@ -262,21 +268,22 @@ class AsyncRepository:
                 ).filter_by(run_id=run_id, server=server)
             )
             row = result.first()
-            summary[server] = {
-                "avg_ttft_ms": round(float(row.avg_ttft), 2) if row.avg_ttft else None,
-                "avg_tpot_ms": round(float(row.avg_tpot), 2) if row.avg_tpot else None,
-                "avg_tps": round(float(row.avg_tps), 2) if row.avg_tps else None,
-                "avg_rps": round(float(row.avg_rps), 2) if row.avg_rps else None,
-                "avg_p50_ms": round(float(row.avg_p50), 2) if row.avg_p50 else None,
-                "avg_p95_ms": round(float(row.avg_p95), 2) if row.avg_p95 else None,
-                "avg_p99_ms": round(float(row.avg_p99), 2) if row.avg_p99 else None,
-                "total_tokens": int(row.total_tokens or 0),
-                "total_requests": int(row.total_requests or 0),
-                "successful_requests": int(row.successful_requests or 0),
-                "failed_requests": int(row.failed_requests or 0),
-                "error_rate": round(float(row.avg_error_rate), 4) if row.avg_error_rate is not None else None,
-                "result_count": row.count,
-            }
+            if row and row.count:
+                summary[key] = {
+                    "avg_ttft_ms": round(float(row.avg_ttft), 2) if row.avg_ttft else None,
+                    "avg_tpot_ms": round(float(row.avg_tpot), 2) if row.avg_tpot else None,
+                    "avg_tps": round(float(row.avg_tps), 2) if row.avg_tps else None,
+                    "avg_rps": round(float(row.avg_rps), 2) if row.avg_rps else None,
+                    "avg_p50_ms": round(float(row.avg_p50), 2) if row.avg_p50 else None,
+                    "avg_p95_ms": round(float(row.avg_p95), 2) if row.avg_p95 else None,
+                    "avg_p99_ms": round(float(row.avg_p99), 2) if row.avg_p99 else None,
+                    "total_tokens": int(row.total_tokens or 0),
+                    "total_requests": int(row.total_requests or 0),
+                    "successful_requests": int(row.successful_requests or 0),
+                    "failed_requests": int(row.failed_requests or 0),
+                    "error_rate": round(float(row.avg_error_rate), 4) if row.avg_error_rate is not None else None,
+                    "result_count": row.count,
+                }
         return summary
 
     async def get_detailed_report_stats(self, run_id: str) -> dict:
@@ -288,24 +295,29 @@ class AsyncRepository:
         models_used = set()
         total_prompts_processed = 0
         
-        # Breakdown: tool -> scenario -> server -> metrics
-        breakdown = {}
-        
         for r in results:
             if r.tool: tools_used.add(r.tool)
             if r.scenario: scenarios_used.add(r.scenario)
             if r.server: servers_used.add(r.server)
             if r.model: models_used.add(r.model)
             
+        run_servers = sorted(list(servers_used))
+        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers[:2])}
+        
+        # Breakdown: tool -> scenario -> server -> metrics
+        breakdown = {}
+        
+        for r in results:
+            mapped_server = server_map.get(r.server)
+            if not mapped_server:
+                continue
+                
             total_prompts_processed += r.total_requests or 0
             
             tool_dict = breakdown.setdefault(r.tool, {})
             scen_dict = tool_dict.setdefault(r.scenario, {})
             
-            # If there are multiple records for the same tool/scenario/server, we should average them.
-            # However, typically there is 1 result row per tool/scenario/server unless retries happened.
-            # We will just overwrite for simplicity or assume 1 row.
-            scen_dict[r.server] = {
+            scen_dict[mapped_server] = {
                 "tps": round(r.tps, 2) if r.tps else None,
                 "rps": round(r.rps, 2) if r.rps else None,
                 "ttft_ms": round(r.ttft_ms, 2) if r.ttft_ms else None,
@@ -342,9 +354,18 @@ class AsyncRepository:
 
     async def get_timeline_chart_data(self, run_id: str) -> dict:
         snapshots = await self.get_hardware_metrics_by_run(run_id)
+        
+        servers_used = set(s.server for s in snapshots)
+        run_servers = sorted(list(servers_used))
+        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers[:2])}
+        
         data = {}
         for snapshot in snapshots:
-            server = data.setdefault(snapshot.server, {
+            mapped_server = server_map.get(snapshot.server)
+            if not mapped_server:
+                continue
+                
+            server = data.setdefault(mapped_server, {
                 "timestamps": [],
                 "gpu_util_pct": [],
                 "cpu_pct": [],
@@ -394,33 +415,34 @@ class AsyncRepository:
             "latency": {"server1": {"p50": [], "p95": [], "p99": []}, "server2": {"p50": [], "p95": [], "p99": []}}
         }
         
-        for srv in ["server1", "server2"]:
+        run_servers = sorted(list(agg.keys()))
+        for i, actual_server in enumerate(run_servers[:2]):
+            mapped_key = f"server{i+1}"
             for c in concurrencies:
-                rows = agg.get(srv, {}).get(c, [])
+                rows = agg.get(actual_server, {}).get(c, [])
                 
                 # TTFT (Assuming average is used for all percentiles if raw percentiles not available)
                 ttft_avg = _get_val(rows, "ttft_ms")
-                chart_data["ttft"][srv]["p50"].append(ttft_avg)
-                chart_data["ttft"][srv]["p95"].append(ttft_avg)
-                chart_data["ttft"][srv]["p99"].append(ttft_avg)
+                chart_data["ttft"][mapped_key]["p50"].append(ttft_avg)
+                chart_data["ttft"][mapped_key]["p95"].append(ttft_avg)
+                chart_data["ttft"][mapped_key]["p99"].append(ttft_avg)
                 
                 # ITL
                 itl_avg = _get_val(rows, "tpot_ms")
-                chart_data["itl"][srv]["p50"].append(itl_avg)
-                chart_data["itl"][srv]["p95"].append(itl_avg)
-                chart_data["itl"][srv]["p99"].append(itl_avg)
+                chart_data["itl"][mapped_key]["p50"].append(itl_avg)
+                chart_data["itl"][mapped_key]["p95"].append(itl_avg)
+                chart_data["itl"][mapped_key]["p99"].append(itl_avg)
                 
                 # TPS
                 tps_avg = _get_val(rows, "tps")
-                chart_data["tps"][srv]["p50"].append(tps_avg)
-                chart_data["tps"][srv]["p95"].append(tps_avg)
-                chart_data["tps"][srv]["p99"].append(tps_avg)
+                chart_data["tps"][mapped_key]["p50"].append(tps_avg)
+                chart_data["tps"][mapped_key]["p95"].append(tps_avg)
+                chart_data["tps"][mapped_key]["p99"].append(tps_avg)
                 
                 # Request Latency (End-to-End)
-                # Uses specific percentile fields if available, otherwise fallback to average
-                chart_data["latency"][srv]["p50"].append(_get_val(rows, "latency_p50_ms"))
-                chart_data["latency"][srv]["p95"].append(_get_val(rows, "latency_p95_ms"))
-                chart_data["latency"][srv]["p99"].append(_get_val(rows, "latency_p99_ms"))
+                chart_data["latency"][mapped_key]["p50"].append(_get_val(rows, "latency_p50_ms"))
+                chart_data["latency"][mapped_key]["p95"].append(_get_val(rows, "latency_p95_ms"))
+                chart_data["latency"][mapped_key]["p99"].append(_get_val(rows, "latency_p99_ms"))
                 
         return chart_data
 

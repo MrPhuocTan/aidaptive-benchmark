@@ -388,4 +388,13 @@
         }
     })();
 </script>
+
+{% if run.status == 'running' %}
+<script>
+    // Auto-reload the page every 10 seconds to update charts and progress in real-time
+    setTimeout(function() {
+        window.location.reload();
+    }, 10000);
+</script>
+{% endif %}
 {% endblock %}
