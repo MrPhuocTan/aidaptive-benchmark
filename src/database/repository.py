@@ -352,20 +352,26 @@ class AsyncRepository:
             "server2": [summary.get("server2", {}).get(key) for _, key in metrics],
         }
 
-    async def get_timeline_chart_data(self, run_id: str) -> dict:
+    async def get_timeline_chart_data(self, run_id: str, max_points: int = 200) -> dict:
         snapshots = await self.get_hardware_metrics_by_run(run_id)
         
         servers_used = set(s.server for s in snapshots)
         run_servers = sorted(list(servers_used))
         server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers[:2])}
         
-        data = {}
+        # Group snapshots by server
+        snapshots_by_server = {}
         for snapshot in snapshots:
             mapped_server = server_map.get(snapshot.server)
-            if not mapped_server:
-                continue
+            if mapped_server:
+                snapshots_by_server.setdefault(mapped_server, []).append(snapshot)
                 
-            server = data.setdefault(mapped_server, {
+        data = {}
+        for server_id, server_snapshots in snapshots_by_server.items():
+            step = max(1, len(server_snapshots) // max_points)
+            sampled = server_snapshots[::step]
+            
+            server = data.setdefault(server_id, {
                 "timestamps": [],
                 "gpu_util_pct": [],
                 "cpu_pct": [],
@@ -374,13 +380,14 @@ class AsyncRepository:
                 "disk_read_mbps": [],
                 "disk_write_mbps": [],
             })
-            server["timestamps"].append(snapshot.timestamp.isoformat() if snapshot.timestamp else None)
-            server["gpu_util_pct"].append(snapshot.gpu_util_pct)
-            server["cpu_pct"].append(snapshot.cpu_pct)
-            server["vram_used_gb"].append(snapshot.vram_used_gb)
-            server["ram_used_gb"].append(snapshot.ram_used_gb)
-            server["disk_read_mbps"].append(snapshot.disk_read_mbps)
-            server["disk_write_mbps"].append(snapshot.disk_write_mbps)
+            for snapshot in sampled:
+                server["timestamps"].append(snapshot.timestamp.isoformat() if snapshot.timestamp else None)
+                server["gpu_util_pct"].append(snapshot.gpu_util_pct)
+                server["cpu_pct"].append(snapshot.cpu_pct)
+                server["vram_used_gb"].append(snapshot.vram_used_gb)
+                server["ram_used_gb"].append(snapshot.ram_used_gb)
+                server["disk_read_mbps"].append(snapshot.disk_read_mbps)
+                server["disk_write_mbps"].append(snapshot.disk_write_mbps)
         
         result = {"timestamps": next(iter(data.values())).get("timestamps", []) if data else []}
         for server_id, server_data in data.items():
