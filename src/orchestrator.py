@@ -439,6 +439,21 @@ class Orchestrator:
             error_msg = f"{tool_name} on {server_id}: {str(e)}"
             console.print(f"          ✗ {error_msg}", style="red")
             self._progress["errors"].append(error_msg)
+            results = []
+
+        if 'results' in locals() and results and any(r.error_rate and r.error_rate >= 0.9 for r in results):
+            client = self.agent_clients.get(server_id)
+            if client:
+                console.print(f"          ! High error rate detected on {server_id}. Checking health...", style="yellow")
+                is_ok = await client.check_ollama_health(target_url)
+                if not is_ok:
+                    console.print(f"          ! Service offline/crashed. Attempting to restart...", style="yellow")
+                    await client.control_ollama("restart")
+                    await asyncio.sleep(15)
+                    await client.warmup_model(model, 1, ollama_url=target_url)
+                else:
+                    console.print(f"          ! Service overloaded. Applying cooldown...", style="yellow")
+                    await asyncio.sleep(10)
 
         completed += 1
         self._progress["completed_tests"] = completed
