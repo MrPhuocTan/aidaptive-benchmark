@@ -289,25 +289,25 @@ document.addEventListener("DOMContentLoaded", function() {
     
     new Chart(document.getElementById('chart-ttft'), {
         type: 'line',
-        data: { labels: labels, datasets: createDatasets('ttft') },
+        data: { datasets: createDatasets('ttft') },
         options: getOptions('TTFT (ms)', true)
     });
     
     new Chart(document.getElementById('chart-itl'), {
         type: 'line',
-        data: { labels: labels, datasets: createDatasets('itl') },
+        data: { datasets: createDatasets('itl') },
         options: getOptions('Latency (ms)', false)
     });
     
     new Chart(document.getElementById('chart-tps'), {
         type: 'line',
-        data: { labels: labels, datasets: createDatasets('tps', true) },
+        data: { datasets: createDatasets('tps', true) },
         options: getOptions('Tokens/sec/user', false)
     });
     
     new Chart(document.getElementById('chart-latency'), {
         type: 'line',
-        data: { labels: labels, datasets: createDatasets('latency') },
+        data: { datasets: createDatasets('latency') },
         options: getOptions('Latency (ms)', true)
     });
 });
