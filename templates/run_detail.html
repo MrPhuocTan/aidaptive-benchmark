@@ -323,7 +323,7 @@
             function createChart(canvasId, datasets) {
                 const canvas = document.getElementById(canvasId);
                 if (canvas) {
-                    new Chart(canvas, { type: "line", data: { datasets }, options: commonOptions });
+                    new Chart(canvas, { type: "line", data: { labels: timelineData.timestamps, datasets }, options: commonOptions });
                 }
             }
 

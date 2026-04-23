@@ -56,7 +56,7 @@
     </div>
 
     <!-- Dashboard Charts -->
-    {% if chart_data and chart_data.concurrencies and chart_data.concurrencies|length > 1 %}
+    {% if chart_data and chart_data.concurrencies and chart_data.concurrencies|length > 0 %}
     
     {% macro render_chart_row(title, canvas_id, data_key, is_tps_per_user=false) %}
     <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
@@ -353,7 +353,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function createChart(canvasId, datasets) {
         const canvas = document.getElementById(canvasId);
         if (canvas) {
-            new Chart(canvas, { type: "line", data: { datasets }, options: commonOptions });
+            new Chart(canvas, { type: "line", data: { labels: timelineData.timestamps, datasets }, options: commonOptions });
         }
     }
 
