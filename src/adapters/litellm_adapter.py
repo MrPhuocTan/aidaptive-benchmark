@@ -65,25 +65,30 @@ class LiteLLMAdapter(BaseToolAdapter):
                 model=f"ollama/{self.model}",
                 messages=[{"role": "user", "content": prompt}],
                 api_base=self.ollama_url,
-                stream=False,
+                stream=True,
                 timeout=600,
             )
+
+            ttft_ms = None
+            completion_tokens = 0
+            
+            async for chunk in response:
+                if ttft_ms is None:
+                    ttft_ms = (time.perf_counter() - start) * 1000
+                if chunk.choices and chunk.choices[0].delta.content:
+                    completion_tokens += 1
 
             end = time.perf_counter()
             total_time = end - start
 
-            usage = getattr(response, "usage", None)
-            prompt_tokens = getattr(usage, "prompt_tokens", 0) if usage else 0
-            completion_tokens = getattr(usage, "completion_tokens", 0) if usage else 0
-
-            result.ttft_ms = total_time * 1000
+            result.ttft_ms = ttft_ms if ttft_ms is not None else (total_time * 1000)
             if completion_tokens > 0:
-                result.tpot_ms = (total_time * 1000) / completion_tokens
+                result.tpot_ms = ((total_time * 1000) - result.ttft_ms) / completion_tokens if completion_tokens > 1 else result.ttft_ms
                 result.tps = completion_tokens / total_time
 
-            result.prompt_tokens = prompt_tokens
+            result.prompt_tokens = 0 # Cannot easily get prompt tokens in streaming mode without token counting lib
             result.completion_tokens = completion_tokens
-            result.total_tokens = prompt_tokens + completion_tokens
+            result.total_tokens = completion_tokens
             result.total_requests = 1
             result.successful_requests = 1
             result.error_rate = 0.0

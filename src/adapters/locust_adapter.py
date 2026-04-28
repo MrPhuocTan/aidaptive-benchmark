@@ -67,6 +67,7 @@ class LocustAdapter(BaseToolAdapter):
             try:
                 proc = await asyncio.create_subprocess_exec(
                     *cmd,
+                    cwd=str(tmp_path),
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -112,11 +113,16 @@ class LocustAdapter(BaseToolAdapter):
     def _build_locustfile(self, prompts: list[str]) -> str:
         prompts_json = json.dumps(prompts)
         return f"""
-from locust import HttpUser, task, between
+from locust import HttpUser, task, between, events
 import random
+import time
+import json
+import statistics
 
 PROMPTS = {prompts_json}
 MODEL = {json.dumps(self.model)}
+
+custom_metrics = []
 
 class OllamaUser(HttpUser):
     host = {json.dumps(self.ollama_url)}
@@ -125,15 +131,67 @@ class OllamaUser(HttpUser):
     @task
     def generate(self):
         prompt = random.choice(PROMPTS)
-        self.client.post(
+        wall_start = time.perf_counter()
+        
+        with self.client.post(
             "/api/generate",
             json={{
                 "model": MODEL,
                 "prompt": prompt,
-                "stream": False,
+                "stream": True,
             }},
+            stream=True,
             timeout=120,
-        )
+            catch_response=True
+        ) as resp:
+            if resp.status_code != 200:
+                resp.failure(f"HTTP {{resp.status_code}}")
+                return
+                
+            ttft = None
+            total_tokens = 0
+            
+            try:
+                for line in resp.iter_lines():
+                    if line:
+                        chunk = json.loads(line)
+                        if not chunk.get("done", False):
+                            total_tokens += 1
+                            if ttft is None:
+                                ttft = (time.perf_counter() - wall_start) * 1000
+                        else:
+                            # Use ollama native token counts if available
+                            total_tokens = chunk.get("eval_count", total_tokens)
+                
+                wall_end = time.perf_counter()
+                total_time = wall_end - wall_start
+                
+                if total_tokens > 0 and ttft is not None:
+                    tpot = ((total_time * 1000) - ttft) / total_tokens if total_tokens > 1 else ttft
+                    tps = total_tokens / total_time
+                    
+                    custom_metrics.append({{
+                        "ttft": ttft,
+                        "tpot": tpot,
+                        "tps": tps
+                    }})
+                resp.success()
+            except Exception as e:
+                resp.failure(f"Stream parsing error: {{e}}")
+
+@events.test_stop.add_listener
+def on_test_stop(environment, **kwargs):
+    if custom_metrics:
+        avg_ttft = statistics.mean([m["ttft"] for m in custom_metrics])
+        avg_tpot = statistics.mean([m["tpot"] for m in custom_metrics])
+        avg_tps = statistics.mean([m["tps"] for m in custom_metrics])
+        
+        with open("locust_custom.json", "w") as f:
+            json.dump({{
+                "ttft_ms": avg_ttft,
+                "tpot_ms": avg_tpot,
+                "tps": avg_tps
+            }}, f)
 """
 
     def _parse_stats_csv(self, stats_file: Path) -> BenchmarkResult:
@@ -171,6 +229,18 @@ class OllamaUser(HttpUser):
         result.error_rate = (
             failed_requests / total_requests if total_requests > 0 else 1.0
         )
+
+        custom_json_path = stats_file.parent / "locust_custom.json"
+        if custom_json_path.exists():
+            try:
+                with open(custom_json_path, "r", encoding="utf-8") as f:
+                    custom_stats = json.load(f)
+                    result.ttft_ms = custom_stats.get("ttft_ms")
+                    result.tpot_ms = custom_stats.get("tpot_ms")
+                    result.tps = custom_stats.get("tps")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("Failed to parse locust_custom.json: %s", e)
 
         return result
 
