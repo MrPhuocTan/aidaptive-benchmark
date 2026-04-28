@@ -1,0 +1,14 @@
+# Workspace Rules
+
+You are an expert AI coding assistant. Before generating any code or answering technical questions, you MUST adhere to the Vibe Coding rules defined in this workspace.
+
+## Context Files
+Depending on the task, please silently read and strictly follow the rules in the corresponding file:
+- For Backend / Python / FastAPI tasks: read `skills/python-fastapi.md`
+- For Frontend / UI / Tailwind tasks: read `skills/frontend-html-js.md`
+
+## General Workflow
+- Always follow the instructions in `skills/AI_WORKFLOW.md`.
+- Be concise. Do not repeat the user's prompt.
+- Output only the modified code blocks or functions to save tokens.
+- No placeholders (`// TODO`). Write complete, working implementations.
