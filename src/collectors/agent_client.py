@@ -114,9 +114,16 @@ class AgentClient:
             metrics.gpu_name = gpu.get("gpu_name", "")
 
         if sys_m:
-            metrics.cpu_pct = sys_m.get("cpu_pct")
-            metrics.ram_used_gb = sys_m.get("ram_used_gb")
-            metrics.ram_total_gb = sys_m.get("ram_total_gb")
+            metrics.cpu_pct = sys_m.get("cpu_usage_pct")
+            
+            # Agent returns memory in MB, convert to GB
+            mem_used_mb = sys_m.get("memory_used_mb", 0)
+            mem_total_mb = sys_m.get("memory_total_mb", 0)
+            if mem_used_mb:
+                metrics.ram_used_gb = mem_used_mb / 1024
+            if mem_total_mb:
+                metrics.ram_total_gb = mem_total_mb / 1024
+                
             metrics.disk_read_mbps = sys_m.get("disk_read_mbps")
             metrics.disk_write_mbps = sys_m.get("disk_write_mbps")
             metrics.network_rx_mbps = sys_m.get("network_rx_mbps")
