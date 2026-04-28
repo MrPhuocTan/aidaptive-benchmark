@@ -1,84 +1,210 @@
-# 🚀 aiDaptive Benchmark Suite
-
-**aiDaptive Benchmark Suite** is a premium, state-of-the-art performance testing and monitoring system designed for AI Infrastructure. It allows you to benchmark multiple LLM servers (Ollama, vLLM, etc.) simultaneously while collecting real-time hardware telemetry.
-
-![Aesthetic Dashboard Preview](https://img.shields.io/badge/UI-Modern_&_Dynamic-blueviolet?style=for-the-badge)
-![N-Server Support](https://img.shields.io/badge/Support-1,_2,_3+_Servers-orange?style=for-the-badge)
-![Hardware Telemetry](https://img.shields.io/badge/Hardware-GPU_/_CPU_/_I/O-green?style=for-the-badge)
-
----
-
-## ✨ Key Features
-
-- **🌐 N-Server Benchmarking**: Compare performance across 1, 2, or 3+ servers in a single run.
-- **📊 Comprehensive Telemetry**: Real-time tracking of:
-  - **LLM Metrics**: TTFT (Time to First Token), TPS (Tokens Per Second), ITL, Latency, Goodput.
-  - **Hardware Metrics**: GPU Utilization, VRAM, Power Consumption, Temperature, CPU Usage, RAM, Disk I/O (MB/s), and Network throughput (MB/s).
-- **📑 Professional Reporting**:
-  - **HTML Reports**: Standalone, interactive reports with Chart.js visualizations.
-  - **Excel Export**: Detailed breakdown of every test case, prompt, and result for deep analysis.
-- **🌍 Multilingual UI**: Full support for English, Vietnamese, and Simplified Chinese.
-- **🛠️ Multi-Tool Support**: Integrated adapters for `Locust`, `oha`, `k6`, `LLMPerf`, and more.
-- **💎 Premium Aesthetics**: Modern dark mode/glassmorphism design with smooth animations and responsive charts.
+<div align="center">
+  <h1>aiDaptive Benchmark Suite</h1>
+  <p><b>A professional, dynamic, and multi-server LLM inference benchmarking platform.</b></p>
+  
+  [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](#)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.103.0-009688.svg?logo=fastapi&logoColor=white)](#)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg?logo=postgresql&logoColor=white)](#)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](#)
+  [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](#)
+</div>
 
 ---
 
-## 🏗️ Architecture
+## Overview
 
-The system consists of a central **Controller** (FastAPI) and lightweight **Agents** deployed on AI servers.
+The **aiDaptive Benchmark Suite** is an advanced AI performance measurement tool designed to configure and compare LLM inference performance across multiple servers dynamically.
 
-- **Controller (Port 8443)**: Orchestrates benchmarks, manages data (PostgreSQL), and serves the Web UI.
-- **Agent (Port 9100)**: Deployed on each AI server to collect GPU and System metrics via `nvidia-smi` and `/proc`.
+### Core Objectives
+- Flexible management of unlimited servers via a dynamic Data Table UI.
+- Concurrent benchmarking execution across 1, 2, or 3+ target environments.
+- **Hardware Telemetry & Analysis:** Real-time collection and visualization of GPU, CPU, Memory, Disk, and Network metrics alongside inference results.
+- **Hardware vs. Optimized Comparison:** Empirical performance validation comparing raw hardware configurations (Baseline) against optimized configurations (aiDaptive+ Enabled).
 
 ---
 
-## 🚀 Quick Start
+## Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Server Monitoring** | Automated hardware scanning and real-time system status tracking (GPU, CPU, VRAM, RAM, Disk I/O, Network I/O). |
+| **N-Server Benchmarking** | Execute and compare benchmarks across single, dual, or multi-server deployments dynamically. |
+| **Multi-tool Benchmark**| Native support for benchmarking tools like Ollama, Oha, Locust, LLMPerf, vLLM, and LiteLLM. |
+| **Automated Comparison** | Automatic calculation of performance differentials (`Δ%`) to determine the optimal configuration. |
+| **Built-in Visualization**| Interactive Chart.js integration embedded directly within the user interface for metrics and hardware timelines. |
+| **History & Reports** | Persistent test execution history with comprehensive HTML reports and deep-dive Excel exports. |
+| **Prompt Management** | Upload and manage prompt datasets via Excel files, stored directly in the PostgreSQL database. |
+
+---
+
+## Core Metrics
+
+| Metric | Full Name | Unit | Description |
+| :---: | :--- | :---: | :--- |
+| **TTFT** | Time To First Token | `ms` | Latency measured until the generation of the first token. |
+| **TPOT** | Time Per Output Token | `ms` | Average time required to generate each subsequent token. |
+| **TPS** | Tokens Per Second | `tokens/s` | Token generation throughput speed. |
+| **ITL** | Inter-Token Latency | `ms` | Latency delay between consecutive tokens. |
+| **RPS** | Requests Per Second | `req/s` | Processing volume of requests handled per second. |
+| **P50/P95/P99** | Latency Percentiles | `ms` | Percentile distribution thresholds of inference latency. |
+| **Error Rate** | Failure Rate | `%` | Percentage metric of failed inference requests. |
+| **Hardware** | Resource Utilization | `%, GB, W, °C, MB/s` | Real-time GPU, CPU, RAM, Disk I/O, and Network I/O usage. |
+
+---
+
+## System Architecture
+
+```mermaid
+graph TD
+    User([User Browser]) -->|HTTP / UI| App[Controller Node]
+    
+    subgraph Controller Node
+        direction TB
+        UI[Web UI & REST API] --> Orch[Orchestrator]
+        Orch --> Adapters[Benchmark Adapters]
+        Orch --> Collectors[Metrics Collectors]
+        Adapters --> DS[(Data Sink)]
+        Collectors --> DS
+        DS --> DB[(PostgreSQL)]
+    end
+    
+    Adapters -->|Inference: Port 11434| S1
+    Adapters -->|Inference: Port 11434| SN
+    
+    Collectors -->|Metrics: Port 9100| S1
+    Collectors -->|Metrics: Port 9100| SN
+
+    subgraph Target Servers
+        direction LR
+        S1[AI Server 1<br/>Baseline]
+        SN[AI Server N<br/>aiDaptive+ Enabled]
+    end
+```
+
+---
+
+## Database Design
+
+```mermaid
+erDiagram
+    SERVER_PROFILES {
+        int id PK
+        string server_id UK
+        string name
+        string ip_address
+        string status
+        json models_available
+    }
+    
+    BENCHMARK_RUNS {
+        int id PK
+        string run_id UK
+        string status
+        datetime started_at
+        string suite
+        int total_tests
+    }
+    
+    BENCHMARK_RESULTS {
+        int id PK
+        string run_id FK
+        string server
+        float tps
+        float ttft_ms
+        float error_rate
+    }
+    
+    SERVER_COMPARISONS {
+        int id PK
+        string run_id FK
+        string overall_winner
+        float delta_tps_pct
+    }
+    
+    HARDWARE_SNAPSHOTS {
+        int id PK
+        string run_id FK
+        string server
+        float gpu_util_pct
+        float cpu_pct
+    }
+    
+    BENCHMARK_RUNS ||--o{ BENCHMARK_RESULTS : "has"
+    BENCHMARK_RUNS ||--o{ SERVER_COMPARISONS : "analyzes"
+    BENCHMARK_RUNS ||--o{ HARDWARE_SNAPSHOTS : "monitors"
+```
+
+---
+
+## Benchmark Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant WebUI
+    participant Orchestrator
+    participant Servers
+    participant DB as PostgreSQL
+
+    User->>WebUI: Initiate Benchmark
+    WebUI->>Orchestrator: POST /api/benchmark/start
+    Orchestrator->>DB: INSERT run (status: running)
+    
+    Note over Orchestrator,Servers: Phase 1 & 2: Preflight & Warmup
+    Orchestrator->>Servers: Verify connectivity & Warmup Models
+    Servers-->>Orchestrator: OK
+    
+    Note over Orchestrator,Servers: Phase 3: Benchmarking & Telemetry
+    loop For each test scenario
+        par Hardware Monitoring
+            Orchestrator->>Servers: Poll Agent Metrics (GPU, CPU, I/O)
+            Servers-->>Orchestrator: Metrics (Port 9100)
+        and Inference Load
+            Orchestrator->>Servers: Execute Inference Requests
+            Servers-->>Orchestrator: Metrics (TTFT, TPS, P99)
+        end
+        Orchestrator->>DB: Save Results & Hardware Snapshots
+    end
+    
+    Note over Orchestrator,DB: Phase 4: Finalize
+    Orchestrator->>DB: Compare Servers & Calculate Deltas
+    Orchestrator->>DB: UPDATE run (status: completed)
+    Orchestrator-->>WebUI: Emit Complete Event
+    WebUI-->>User: Display Results & Hardware Dashboard
+```
+
+---
+
+## Getting Started
 
 ### 1. Prerequisites
 - **Python 3.10+**
-- **PostgreSQL** (configured in `src/config.py` or `.env`)
-- **Ollama** installed on AI Servers.
+- **Docker & Docker Compose**
+- **PostgreSQL 15+**
 
-### 2. Controller Setup
+### 2. Installation
 ```bash
 # Clone the repository
 git clone https://github.com/MrPhuocTan/aidaptive-benchmark.git
 cd aidaptive-benchmark
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the system
-./run.sh
+# Start the application and database
+./command/start_server.sh
 ```
+*The Web UI will be accessible at `http://localhost:8443`*
 
-### 3. Agent Setup (Run on AI Servers)
+### 3. Agent Setup (AI Servers)
+To collect hardware telemetry on target servers, install the aiDaptive Agent:
 ```bash
-# One-line installation
 curl -sSL https://raw.githubusercontent.com/MrPhuocTan/aidaptive-benchmark/main/install_ai_server.sh | bash
 ```
 
 ---
 
-## 📅 Deployment
+## Support & Contact
+For platform inquiries, infrastructure support, or architectural discussions, contact the engineering team.
 
-Detailed deployment instructions for production environments can be found in the [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+**Author & Credits:**
+MrPhuocTan - phtan.working@gmail.com - 097.201.2901
 
-- **Production URL**: `http://<your-server-ip>:8443`
-- **Agent Port**: `9100`
-
----
-
-## 🛠️ Developer Guide
-
-For developers looking to extend the suite or add new benchmark adapters, please refer to the [Skill.md](Skill.md) guide. It covers:
-- Directory structure and conventions.
-- Data mapping between Agents and Database.
-- Adding new tool adapters.
-- i18n implementation.
-
----
-
-## 📜 License
-
-Created by **MrPhuocTan** — *Ted.t*. Built for advanced AI performance engineering.
+*aiDaptive Benchmark Suite - © 2026 MrPhuocTan. All rights reserved.*
