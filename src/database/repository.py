@@ -423,10 +423,12 @@ class AsyncRepository:
         }
         
         run_servers = sorted(list(agg.keys()))
-        for i, actual_server in enumerate(run_servers[:2]):
+        for i in range(2):
             mapped_key = f"server{i+1}"
+            actual_server = run_servers[i] if i < len(run_servers) else None
+            
             for c in concurrencies:
-                rows = agg.get(actual_server, {}).get(c, [])
+                rows = agg.get(actual_server, {}).get(c, []) if actual_server else []
                 
                 # TTFT (Assuming average is used for all percentiles if raw percentiles not available)
                 ttft_avg = _get_val(rows, "ttft_ms")

@@ -335,7 +335,7 @@
                 backgroundColor: "transparent",
                 tension: 0.2,
                 borderWidth: 2,
-                pointRadius: 0
+                pointRadius: 4
             })));
 
             // 2. CPU Chart
@@ -346,7 +346,7 @@
                 backgroundColor: "transparent",
                 tension: 0.2,
                 borderWidth: 2,
-                pointRadius: 0
+                pointRadius: 4
             })));
 
             // 3. RAM Chart
@@ -357,7 +357,7 @@
                 backgroundColor: "transparent",
                 tension: 0.2,
                 borderWidth: 2,
-                pointRadius: 0
+                pointRadius: 4
             })));
 
             // 4. Disk Chart (Read/Write Combined)
@@ -371,7 +371,7 @@
                     backgroundColor: "transparent",
                     tension: 0.2,
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 4
                 });
                 diskDatasets.push({
                     label: `${srv} (Write)`,
@@ -381,7 +381,7 @@
                     backgroundColor: "transparent",
                     tension: 0.2,
                     borderWidth: 2,
-                    pointRadius: 0
+                    pointRadius: 4
                 });
             });
             createChart("timeline-chart-disk", diskDatasets);

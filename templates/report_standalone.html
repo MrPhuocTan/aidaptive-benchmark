@@ -286,12 +286,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         
         return [
-            { label: 'w/ MW p50', data: processArray(metricObj.server2.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0 },
-            { label: 'w/ MW p95', data: processArray(metricObj.server2.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0 },
-            { label: 'w/ MW p99', data: processArray(metricObj.server2.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0 },
-            { label: 'w/o MW p50', data: processArray(metricObj.server1.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 0 },
-            { label: 'w/o MW p95', data: processArray(metricObj.server1.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 0 },
-            { label: 'w/o MW p99', data: processArray(metricObj.server1.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 0 }
+            { label: 'w/ MW p50', data: processArray(metricObj.server2.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
+            { label: 'w/ MW p95', data: processArray(metricObj.server2.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
+            { label: 'w/ MW p99', data: processArray(metricObj.server2.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
+            { label: 'w/o MW p50', data: processArray(metricObj.server1.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 },
+            { label: 'w/o MW p95', data: processArray(metricObj.server1.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 },
+            { label: 'w/o MW p99', data: processArray(metricObj.server1.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 }
         ];
     }
     
@@ -378,7 +378,7 @@ document.addEventListener("DOMContentLoaded", function() {
         data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].gpu_util_pct[idx] })),
         borderColor: colors[i % colors.length],
         backgroundColor: "transparent",
-        tension: 0.2, borderWidth: 2, pointRadius: 0
+        tension: 0.2, borderWidth: 2, pointRadius: 4
     })));
 
     createChart("timeline-chart-cpu", servers.map((srv, i) => ({
@@ -386,7 +386,7 @@ document.addEventListener("DOMContentLoaded", function() {
         data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].cpu_pct[idx] })),
         borderColor: colors[i % colors.length],
         backgroundColor: "transparent",
-        tension: 0.2, borderWidth: 2, pointRadius: 0
+        tension: 0.2, borderWidth: 2, pointRadius: 4
     })));
 
     createChart("timeline-chart-ram", servers.map((srv, i) => ({
@@ -394,7 +394,7 @@ document.addEventListener("DOMContentLoaded", function() {
         data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].ram_used_gb[idx] })),
         borderColor: colors[i % colors.length],
         backgroundColor: "transparent",
-        tension: 0.2, borderWidth: 2, pointRadius: 0
+        tension: 0.2, borderWidth: 2, pointRadius: 4
     })));
 
     const diskDatasets = [];
@@ -403,12 +403,12 @@ document.addEventListener("DOMContentLoaded", function() {
         diskDatasets.push({
             label: `${srv} (Read)`,
             data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_read_mbps[idx] })),
-            borderColor: c, backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 0
+            borderColor: c, backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 4
         });
         diskDatasets.push({
             label: `${srv} (Write)`,
             data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_write_mbps[idx] })),
-            borderColor: c, borderDash: [5, 5], backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 0
+            borderColor: c, borderDash: [5, 5], backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 4
         });
     });
     createChart("timeline-chart-disk", diskDatasets);
