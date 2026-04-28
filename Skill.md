@@ -218,8 +218,8 @@ GET /info                            agent_client.get_server_specs()
 | `cpu_usage_pct` | `cpu_pct` | `cpu_pct` | `cpu_pct` |
 | `memory_used_mb` | `ram_used_gb` (÷1024) | `ram_used_gb` | `ram_used_gb` |
 | `memory_total_mb` | `ram_total_gb` (÷1024) | `ram_total_gb` | `ram_total_gb` |
-| *(not available)* | `None` | `disk_read_mbps` | `disk_read_mbps` |
-| *(not available)* | `None` | `network_rx_mbps` | `network_rx_mbps` |
+| `disk_read_mbps` | `disk_read_mbps` | `disk_read_mbps` | `disk_read_mbps` |
+| `network_rx_mbps` | `network_rx_mbps` | `network_rx_mbps` | `network_rx_mbps` |
 
 ### `/info` (Server Info — used by `background.py`)
 
@@ -362,9 +362,11 @@ curl -s http://localhost:9100/info
 
 ## 11. Hướng phát triển đề xuất
 
-1. **Agent nâng cấp:** Thêm `disk_read_mbps`, `disk_write_mbps`, `network_rx_mbps`, `network_tx_mbps` vào `/metrics/system` trên agent.py.
-2. **GPU Server thật:** Deploy agent lên VM có GPU (ví dụ: `n1-standard-4` + NVIDIA T4) để test GPU charts.
-3. **Automated tests:** Thêm `pytest` với mock HTTP responses cho `agent_client.py` để ngăn regression mapping.
-4. **WebSocket:** Thay polling (`setInterval 2s`) bằng WebSocket cho real-time progress.
-5. **Report PDF Server-side:** Tích hợp Playwright trên server để sinh PDF offline thay vì client-side download.
-6. **Multi-model benchmark:** Hỗ trợ benchmark nhiều model trong cùng 1 run (hiện tại chỉ chọn 1 model).
+1. **GPU Server thật:** Deploy agent lên VM có GPU (ví dụ: `n1-standard-4` + NVIDIA T4) để test GPU charts thực tế.
+2. **WebSocket:** Thay polling (`setInterval 2s`) bằng WebSocket cho real-time progress.
+3. **Report PDF Server-side:** Tích hợp Playwright trên server để sinh PDF offline thay vì client-side download.
+4. **Multi-model benchmark:** Hỗ trợ benchmark nhiều model trong cùng 1 run (hiện tại chỉ chọn 1 model).
+5. **Alerting:** Tích hợp Slack/Telegram webhook khi benchmark hoàn thành hoặc server bị lỗi.
+
+---
+*Cập nhật lần cuối: 28/04/2026 bởi Antigravity*
