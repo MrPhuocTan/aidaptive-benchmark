@@ -23,6 +23,8 @@
         .bg-emerald-50 { background-color: #ecfdf5; }
         .text-violet-800 { color: #5b21b6; }
         .bg-violet-50 { background-color: #f5f3ff; }
+        .text-sky-800 { color: #075985; }
+        .bg-sky-50 { background-color: #f0f9ff; }
         .text-red-500 { color: #ef4444; }
         .print-btn { display: inline-block; padding: 0.5rem 1rem; background-color: #4f46e5; color: white; border-radius: 0.375rem; font-weight: 500; text-decoration: none; cursor: pointer; border: none; }
         .print-btn:hover { background-color: #4338ca; }
@@ -51,6 +53,9 @@
     </div>
 
     {% if report_data %}
+    {% set server_count = report_data.metadata.server_count | default(0) %}
+    {% set server_labels = report_data.metadata.server_labels | default({}) %}
+
     <!-- Metadata Summary -->
     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         <div class="card p-4">
@@ -98,6 +103,9 @@
     <!-- Dashboard Charts -->
     {% if chart_data and chart_data.concurrencies and chart_data.concurrencies|length > 0 %}
     
+    {% set server_bg_colors = ['bg-violet-50', 'bg-emerald-50', 'bg-sky-50'] %}
+    {% set server_text_colors = ['text-violet-800', 'text-emerald-800', 'text-sky-800'] %}
+
     {% macro render_chart_row(title, canvas_id, data_key, is_tps_per_user=false) %}
     <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
         <div class="flex flex-col lg:flex-row">
@@ -110,39 +118,47 @@
             </div>
             
             <!-- Table Side -->
-            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4">
+            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4 overflow-x-auto">
                 <table class="w-full text-center border-collapse">
                     <thead>
                         <tr>
                             <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">{{ t("report_details.concurrency") }}</th>
-                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">{{ t("report_details.with_mw") }}<br><span class="text-xs font-normal opacity-80">({{ t("report_details.avg_tokens") if is_tps_per_user else t("report_details.avg_ms") }})</span></th>
-                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">{{ t("report_details.without_mw") }}<br><span class="text-xs font-normal opacity-80">({{ t("report_details.avg_tokens") if is_tps_per_user else t("report_details.avg_ms") }})</span></th>
+                            {% for srv_key, srv_name in server_labels.items() %}
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">{{ srv_name }}<br><span class="text-xs font-normal opacity-80">({{ t("report_details.avg_tokens") if is_tps_per_user else t("report_details.avg_ms") }})</span></th>
+                            {% endfor %}
+                            {% if server_count >= 2 %}
                             <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">{{ t("report_details.improvement") }}</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody class="bg-white">
                         {% for i in range(chart_data.concurrencies | length) %}
                         {% set c = chart_data.concurrencies[i] %}
-                        {% set val_mw = chart_data[data_key]['server2']['p50'][i] %}
-                        {% set val_wo = chart_data[data_key]['server1']['p50'][i] %}
-                        
-                        {% if is_tps_per_user and c > 0 %}
-                            {% set val_mw = val_mw / c if val_mw else none %}
-                            {% set val_wo = val_wo / c if val_wo else none %}
-                        {% endif %}
-
                         <tr>
                             <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">{{ c }}</td>
-                            <td class="p-2 font-mono border border-slate-300 text-slate-700">{{ "%.3f"|format(val_mw) if val_mw else '--' }}</td>
-                            <td class="p-2 font-mono border border-slate-300 text-slate-700">{{ "%.3f"|format(val_wo) if val_wo else '--' }}</td>
+                            {% for srv_key in server_labels %}
+                            {% set raw_val = chart_data[data_key][srv_key]['p50'][i] if chart_data[data_key][srv_key] is defined else none %}
+                            {% if is_tps_per_user and c > 0 %}
+                                {% set val = raw_val / c if raw_val else none %}
+                            {% else %}
+                                {% set val = raw_val %}
+                            {% endif %}
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">{{ "%.3f"|format(val) if val else '--' }}</td>
+                            {% endfor %}
+                            {% if server_count >= 2 %}
+                            {% set val_s1 = chart_data[data_key]['server1']['p50'][i] if chart_data[data_key]['server1'] is defined else none %}
+                            {% set val_s2 = chart_data[data_key]['server2']['p50'][i] if chart_data[data_key]['server2'] is defined else none %}
+                            {% if is_tps_per_user and c > 0 %}
+                                {% set val_s1 = val_s1 / c if val_s1 else none %}
+                                {% set val_s2 = val_s2 / c if val_s2 else none %}
+                            {% endif %}
                             <td class="p-2 font-mono border border-slate-300 text-slate-700">
-                                {% if val_mw and val_wo and val_wo > 0 and val_mw > 0 %}
+                                {% if val_s1 and val_s2 and val_s1 > 0 and val_s2 > 0 %}
                                     {% if is_tps_per_user %}
-                                        {% set imp = ((val_mw - val_wo) / val_mw) * 100 %}
+                                        {% set imp = ((val_s2 - val_s1) / val_s2) * 100 %}
                                     {% else %}
-                                        {% set imp = ((val_wo - val_mw) / val_mw) * 100 %}
+                                        {% set imp = ((val_s1 - val_s2) / val_s2) * 100 %}
                                     {% endif %}
-                                    
                                     {% if imp > 0.1 %}
                                         ↑ {{ "%.1f"|format(imp) }}%
                                     {% elif imp < -0.1 %}
@@ -154,6 +170,7 @@
                                     --
                                 {% endif %}
                             </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -168,6 +185,89 @@
         {{ render_chart_row(t("report_details.chart_itl"), "chart-itl", "itl") }}
         {{ render_chart_row(t("report_details.chart_tps"), "chart-tps", "tps", true) }}
         {{ render_chart_row(t("report_details.chart_latency"), "chart-latency", "latency") }}
+    </div>
+    {% endif %}
+
+    <!-- Hardware Specifications Table -->
+    {% if report_data.hardware_summary and report_data.hardware_summary|length > 0 %}
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+            <h4 class="font-semibold text-slate-800">🖥️ Hardware Specifications</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 border-b border-slate-200">
+                        <th class="p-3 text-sm font-semibold text-slate-700">Metric</th>
+                        {% for srv_key in report_data.hardware_summary|sort %}
+                        <th class="p-3 text-sm font-semibold text-center text-violet-800 bg-violet-50">
+                            {{ report_data.metadata.server_labels.get(srv_key, srv_key) }}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    <!-- GPU Info -->
+                    <tr class="border-b border-slate-100 bg-blue-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="{{ report_data.hardware_summary|length + 1 }}">🎮 GPU</td>
+                    </tr>
+                    {% for label, key in [("GPU Model", "gpu_name"), ("GPU Util (avg)", "gpu_util_avg"), ("GPU Util (max)", "gpu_util_max"), ("VRAM Used (avg)", "vram_used_avg_gb"), ("VRAM Total", "vram_total_gb"), ("Power (avg)", "gpu_power_avg_w"), ("Power (max)", "gpu_power_max_w"), ("Temp (avg)", "gpu_temp_avg_c"), ("Temp (max)", "gpu_temp_max_c")] %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">{{ label }}</td>
+                        {% for srv_key in report_data.hardware_summary|sort %}
+                        {% set hw = report_data.hardware_summary[srv_key] %}
+                        <td class="p-3 text-center font-mono">
+                            {% if key == "gpu_name" %}{{ hw.get(key, 'N/A') }}
+                            {% elif key in ["gpu_util_avg", "gpu_util_max"] %}{{ "%.1f%%"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% elif key in ["vram_used_avg_gb", "vram_total_gb"] %}{{ "%.2f GB"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% elif key in ["gpu_power_avg_w", "gpu_power_max_w"] %}{{ "%.1f W"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% elif key in ["gpu_temp_avg_c", "gpu_temp_max_c"] %}{{ "%.1f °C"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% else %}{{ hw.get(key, 'N/A') }}{% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    <!-- CPU / RAM -->
+                    <tr class="border-b border-slate-100 bg-green-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="{{ report_data.hardware_summary|length + 1 }}">💻 CPU / RAM</td>
+                    </tr>
+                    {% for label, key in [("CPU (avg)", "cpu_avg_pct"), ("CPU (max)", "cpu_max_pct"), ("RAM Used (avg)", "ram_used_avg_gb"), ("RAM Total", "ram_total_gb")] %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">{{ label }}</td>
+                        {% for srv_key in report_data.hardware_summary|sort %}
+                        {% set hw = report_data.hardware_summary[srv_key] %}
+                        <td class="p-3 text-center font-mono">
+                            {% if key in ["cpu_avg_pct", "cpu_max_pct"] %}{{ "%.1f%%"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% elif key in ["ram_used_avg_gb", "ram_total_gb"] %}{{ "%.2f GB"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}
+                            {% else %}{{ hw.get(key, 'N/A') }}{% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    <!-- Disk I/O -->
+                    <tr class="border-b border-slate-100 bg-amber-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="{{ report_data.hardware_summary|length + 1 }}">💾 Disk / Network I/O</td>
+                    </tr>
+                    {% for label, key in [("Disk Read (avg)", "disk_read_avg_mbps"), ("Disk Write (avg)", "disk_write_avg_mbps"), ("Network RX (avg)", "network_rx_avg_mbps"), ("Network TX (avg)", "network_tx_avg_mbps")] %}
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">{{ label }}</td>
+                        {% for srv_key in report_data.hardware_summary|sort %}
+                        {% set hw = report_data.hardware_summary[srv_key] %}
+                        <td class="p-3 text-center font-mono">{{ "%.2f MB/s"|format(hw.get(key, 0)) if hw.get(key) is not none else "N/A" }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    <!-- Snapshots count -->
+                    <tr class="bg-slate-50">
+                        <td class="p-3 text-slate-500 text-xs">Data Points</td>
+                        {% for srv_key in report_data.hardware_summary|sort %}
+                        {% set hw = report_data.hardware_summary[srv_key] %}
+                        <td class="p-3 text-center text-xs text-slate-400">{{ hw.get("snapshot_count", 0) }} snapshots</td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
@@ -198,7 +298,7 @@
     </div>
     {% endif %}
 
-    <!-- Breakdown Table -->
+    <!-- Breakdown Table — Dynamic N-Server -->
     <div class="card p-0 overflow-hidden">
         <div class="p-4 border-b border-slate-200 bg-slate-50">
             <h4 class="font-semibold text-slate-800">{{ t("report_details.table_title") }}</h4>
@@ -210,19 +310,18 @@
                     <tr class="bg-slate-100 border-b border-slate-200">
                         <th class="p-3 text-sm font-semibold text-slate-700">{{ t("report_details.tool") }}</th>
                         <th class="p-3 text-sm font-semibold text-slate-700 border-r border-slate-200">{{ t("report_details.scenario") }}</th>
-                        <th colspan="4" class="p-3 text-center text-sm font-semibold text-violet-800 bg-violet-50 border-r border-slate-200">{{ t("report_details.server1") }}</th>
-                        <th colspan="4" class="p-3 text-center text-sm font-semibold text-emerald-800 bg-emerald-50">{{ t("report_details.server2") }}</th>
+                        {% for srv_key, srv_name in server_labels.items() %}
+                        <th colspan="4" class="p-3 text-center text-sm font-semibold {{ server_text_colors[loop.index0 % 3] }} {{ server_bg_colors[loop.index0 % 3] }} {{ 'border-r border-slate-200' if not loop.last else '' }}">{{ srv_name }}</th>
+                        {% endfor %}
                     </tr>
                     <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
                         <th class="p-2 border-r border-slate-200" colspan="2"></th>
+                        {% for srv_key in server_labels %}
                         <th class="p-2 text-right">TPS</th>
                         <th class="p-2 text-right">TTFT (ms)</th>
                         <th class="p-2 text-right">P99 (ms)</th>
-                        <th class="p-2 text-right border-r border-slate-200">Error %</th>
-                        <th class="p-2 text-right">TPS</th>
-                        <th class="p-2 text-right">TTFT (ms)</th>
-                        <th class="p-2 text-right">P99 (ms)</th>
-                        <th class="p-2 text-right">Error %</th>
+                        <th class="p-2 text-right {{ 'border-r border-slate-200' if not loop.last else '' }}">Error %</th>
+                        {% endfor %}
                     </tr>
                 </thead>
                 <tbody class="text-sm">
@@ -232,19 +331,13 @@
                             <td class="p-3 font-medium text-slate-800">{{ tool }}</td>
                             <td class="p-3 text-slate-600 border-r border-slate-200">{{ scenario }}</td>
                             
-                            <!-- Server 1 -->
-                            {% set s1 = srv_dict.get('server1', {}) %}
-                            <td class="p-3 text-right font-mono">{{ s1.get('tps', '--') if s1.get('tps') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono">{{ s1.get('ttft_ms', '--') if s1.get('ttft_ms') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono">{{ s1.get('latency_p99_ms', '--') if s1.get('latency_p99_ms') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono border-r border-slate-200 {{ 'text-red-500 font-semibold' if s1.get('error_rate', 0) > 0 else 'text-slate-500' }}">{{ s1.get('error_rate', '0') }}%</td>
-                            
-                            <!-- Server 2 -->
-                            {% set s2 = srv_dict.get('server2', {}) %}
-                            <td class="p-3 text-right font-mono">{{ s2.get('tps', '--') if s2.get('tps') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono">{{ s2.get('ttft_ms', '--') if s2.get('ttft_ms') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono">{{ s2.get('latency_p99_ms', '--') if s2.get('latency_p99_ms') is not none else '--' }}</td>
-                            <td class="p-3 text-right font-mono {{ 'text-red-500 font-semibold' if s2.get('error_rate', 0) > 0 else 'text-slate-500' }}">{{ s2.get('error_rate', '0') }}%</td>
+                            {% for srv_key in server_labels %}
+                            {% set s = srv_dict.get(srv_key, {}) %}
+                            <td class="p-3 text-right font-mono">{{ s.get('tps', '--') if s.get('tps') is not none else '--' }}</td>
+                            <td class="p-3 text-right font-mono">{{ s.get('ttft_ms', '--') if s.get('ttft_ms') is not none else '--' }}</td>
+                            <td class="p-3 text-right font-mono">{{ s.get('latency_p99_ms', '--') if s.get('latency_p99_ms') is not none else '--' }}</td>
+                            <td class="p-3 text-right font-mono {{ 'border-r border-slate-200' if not loop.last else '' }} {{ 'text-red-500 font-semibold' if s.get('error_rate', 0) > 0 else 'text-slate-500' }}">{{ s.get('error_rate', '0') }}%</td>
+                            {% endfor %}
                         </tr>
                         {% endfor %}
                     {% endfor %}
@@ -271,6 +364,15 @@ document.addEventListener("DOMContentLoaded", function() {
     
     const chartData = JSON.parse(dataNode.textContent);
     const labels = chartData.concurrencies;
+    const serverLabels = chartData.server_labels || {};
+    const serverKeys = Object.keys(serverLabels);
+    
+    const serverColors = ['#7c3aed', '#16a34a', '#dc2626', '#2563eb', '#d97706', '#0d9488'];
+    const percentileStyles = {
+        'p50': { dash: [], width: 2.5 },
+        'p95': { dash: [6, 3], width: 2 },
+        'p99': { dash: [2, 2], width: 1.5 },
+    };
     
     function createDatasets(metricKey, divideByConcurrency = false) {
         const metricObj = chartData[metricKey];
@@ -288,14 +390,27 @@ document.addEventListener("DOMContentLoaded", function() {
             return result;
         }
         
-        return [
-            { label: 'w/ MW p50', data: processArray(metricObj.server2.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
-            { label: 'w/ MW p95', data: processArray(metricObj.server2.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
-            { label: 'w/ MW p99', data: processArray(metricObj.server2.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 4 },
-            { label: 'w/o MW p50', data: processArray(metricObj.server1.p50), borderColor: '#16a34a', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 },
-            { label: 'w/o MW p95', data: processArray(metricObj.server1.p95), borderColor: '#a16207', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 },
-            { label: 'w/o MW p99', data: processArray(metricObj.server1.p99), borderColor: '#dc2626', backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 4 }
-        ];
+        const datasets = [];
+        serverKeys.forEach((key, srvIdx) => {
+            const srvData = metricObj[key];
+            if (!srvData) return;
+            const color = serverColors[srvIdx % serverColors.length];
+            const srvName = serverLabels[key] || key;
+            
+            Object.entries(percentileStyles).forEach(([pKey, style]) => {
+                datasets.push({
+                    label: `${srvName} ${pKey}`,
+                    data: processArray(srvData[pKey]),
+                    borderColor: color,
+                    backgroundColor: 'transparent',
+                    borderWidth: style.width,
+                    borderDash: style.dash,
+                    tension: 0.1,
+                    pointRadius: 4,
+                });
+            });
+        });
+        return datasets;
     }
     
     function getOptions(yTitle, isLogarithmic = false) {

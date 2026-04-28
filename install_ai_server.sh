@@ -193,8 +193,10 @@ async def gpu_metrics():
 
 @app.get("/metrics/system")
 async def system_metrics():
-    """Get CPU/RAM metrics"""
+    """Get CPU/RAM/Disk I/O/Network I/O metrics"""
     try:
+        import time
+        
         # CPU Usage
         cpu_output = run_cmd("top -bn1 | grep 'Cpu(s)' | awk '{print $2}'")
         cpu_pct = float(cpu_output) if cpu_output else 0
@@ -207,9 +209,64 @@ async def system_metrics():
         load_output = run_cmd("cat /proc/loadavg | awk '{print $1, $2, $3}'")
         load_parts = load_output.split() if load_output else ["0", "0", "0"]
         
-        # Disk
+        # Disk usage (static)
         disk_output = run_cmd("df -h / | awk 'NR==2{print $2, $3, $5}'")
         disk_parts = disk_output.split() if disk_output else ["0", "0", "0%"]
+        
+        # Disk I/O throughput (read/write MB/s) via /proc/diskstats
+        disk_read_mbps = None
+        disk_write_mbps = None
+        try:
+            def _read_diskstats():
+                with open("/proc/diskstats", "r") as f:
+                    total_read = 0
+                    total_write = 0
+                    for line in f:
+                        parts = line.split()
+                        if len(parts) >= 14:
+                            dev_name = parts[2]
+                            # Only count main disks (sda, nvme0n1, vda, etc.)
+                            if dev_name.startswith(("sd", "nvme", "vd")) and not any(c.isdigit() for c in dev_name.replace("nvme", "").replace("n1", "")):
+                                total_read += int(parts[5])   # sectors read
+                                total_write += int(parts[9])  # sectors written
+                    return total_read, total_write
+            
+            r1, w1 = _read_diskstats()
+            time.sleep(0.5)
+            r2, w2 = _read_diskstats()
+            
+            # sectors are 512 bytes; convert to MB/s
+            disk_read_mbps = round((r2 - r1) * 512 / (0.5 * 1024 * 1024), 2)
+            disk_write_mbps = round((w2 - w1) * 512 / (0.5 * 1024 * 1024), 2)
+        except Exception:
+            pass
+        
+        # Network I/O (rx/tx MB/s) via /proc/net/dev
+        network_rx_mbps = None
+        network_tx_mbps = None
+        try:
+            def _read_netdev():
+                with open("/proc/net/dev", "r") as f:
+                    total_rx = 0
+                    total_tx = 0
+                    for line in f:
+                        line = line.strip()
+                        if ":" in line and not line.startswith("lo"):
+                            parts = line.split()
+                            iface = parts[0].rstrip(":")
+                            if iface not in ("lo", "docker0", "br-"):
+                                total_rx += int(parts[1])  # bytes received
+                                total_tx += int(parts[9])  # bytes transmitted
+                    return total_rx, total_tx
+            
+            rx1, tx1 = _read_netdev()
+            time.sleep(0.5)
+            rx2, tx2 = _read_netdev()
+            
+            network_rx_mbps = round((rx2 - rx1) / (0.5 * 1024 * 1024), 2)
+            network_tx_mbps = round((tx2 - tx1) / (0.5 * 1024 * 1024), 2)
+        except Exception:
+            pass
         
         return {
             "cpu_usage_pct": cpu_pct,
@@ -222,6 +279,10 @@ async def system_metrics():
             "disk_total": disk_parts[0],
             "disk_used": disk_parts[1],
             "disk_used_pct": disk_parts[2],
+            "disk_read_mbps": disk_read_mbps,
+            "disk_write_mbps": disk_write_mbps,
+            "network_rx_mbps": network_rx_mbps,
+            "network_tx_mbps": network_tx_mbps,
             "timestamp": datetime.utcnow().isoformat()
         }
     except Exception as e:

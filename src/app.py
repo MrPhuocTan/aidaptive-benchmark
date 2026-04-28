@@ -2,19 +2,19 @@
 
 import asyncio
 import ipaddress
-from pathlib import Path
-from src.time_utils import get_local_time
 from datetime import datetime
-import anyio
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from src.time_utils import get_local_time
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -696,16 +696,16 @@ async def api_benchmark_stop(request: Request, session: AsyncSession = Depends(g
         repo = AsyncRepository(session)
         running_run = await repo.get_current_running_run()
         if running_run:
-            await repo.stop_run(running_run.run_id, status="failed", error_message="Run was interrupted by server restart and stopped manually.")
+            await repo.stop_run(running_run.run_id, status="failed", error_message=_t_for_request(request, "api.run_interrupted"))
             return {
                 "run_id": running_run.run_id,
                 "status": "stopped",
-                "message": "Zombie run stopped successfully.",
+                "message": _t_for_request(request, "api.zombie_run_stopped"),
                 "progress": {"status": "idle"}
             }
             
     return JSONResponse(
-        {"error": "No running benchmark found to stop."},
+        {"error": _t_for_request(request, "api.no_running_benchmark")},
         status_code=400,
     )
 
@@ -784,7 +784,6 @@ async def api_servers():
         payload.append(await _build_server_payload(server_id, server_cfg))
     return {"servers": payload}
 
-from pydantic import BaseModel
 
 class VerifyServerRequest(BaseModel):
     ip: str
@@ -1198,13 +1197,15 @@ async def api_trend(
         for run in runs:
             if run.status == "completed":
                 summary = await repo.get_run_summary_stats(run.run_id)
-                trend.append({
+                entry = {
                     "run_id": run.run_id,
                     "date": run.started_at.isoformat() if run.started_at else None,
                     "tags": run.tags,
-                    "server1": summary.get("server1", {}),
-                    "server2": summary.get("server2", {}),
-                })
+                }
+                # Include all server summaries dynamically
+                for key, val in summary.items():
+                    entry[key] = val
+                trend.append(entry)
     except SQLAlchemyError:
         return _database_unavailable_json()
 

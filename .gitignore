@@ -30,4 +30,20 @@ influxdb_data/
 grafana_data/
 
 # Debug & Temp
+debug_thing/
 debug_things/
+node_modules/
+package.json
+package-lock.json
+
+# Generated artifacts (root-level only)
+/*.html
+/*.png
+/*.jpg
+
+# Temp databases & generated reports
+*.db
+*.db-shm
+*.db-wal
+reports_output/
+generate_9_reports.py

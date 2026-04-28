@@ -94,12 +94,12 @@ class Repository:
             .first()
         )
         return {
-            "avg_ttft_ms": float(row.avg_ttft_ms) if row.avg_ttft_ms else None,
-            "avg_tpot_ms": float(row.avg_tpot_ms) if row.avg_tpot_ms else None,
-            "avg_tps": float(row.avg_tps) if row.avg_tps else None,
-            "avg_rps": float(row.avg_rps) if row.avg_rps else None,
-            "avg_p99_ms": float(row.avg_p99_ms) if row.avg_p99_ms else None,
-            "avg_error_rate": float(row.avg_error_rate) if row.avg_error_rate else None,
+            "avg_ttft_ms": float(row.avg_ttft_ms) if row.avg_ttft_ms is not None else None,
+            "avg_tpot_ms": float(row.avg_tpot_ms) if row.avg_tpot_ms is not None else None,
+            "avg_tps": float(row.avg_tps) if row.avg_tps is not None else None,
+            "avg_rps": float(row.avg_rps) if row.avg_rps is not None else None,
+            "avg_p99_ms": float(row.avg_p99_ms) if row.avg_p99_ms is not None else None,
+            "avg_error_rate": float(row.avg_error_rate) if row.avg_error_rate is not None else None,
             "result_count": row.result_count or 0,
         }
 
@@ -248,7 +248,7 @@ class AsyncRepository:
         run_servers = sorted([row[0] for row in servers_res.all() if row[0]])
         
         summary = {}
-        for i, server in enumerate(run_servers[:2]):
+        for i, server in enumerate(run_servers):
             key = f"server{i+1}"
             result = await self.session.execute(
                 select(
@@ -270,13 +270,13 @@ class AsyncRepository:
             row = result.first()
             if row and row.count:
                 summary[key] = {
-                    "avg_ttft_ms": round(float(row.avg_ttft), 2) if row.avg_ttft else None,
-                    "avg_tpot_ms": round(float(row.avg_tpot), 2) if row.avg_tpot else None,
-                    "avg_tps": round(float(row.avg_tps), 2) if row.avg_tps else None,
-                    "avg_rps": round(float(row.avg_rps), 2) if row.avg_rps else None,
-                    "avg_p50_ms": round(float(row.avg_p50), 2) if row.avg_p50 else None,
-                    "avg_p95_ms": round(float(row.avg_p95), 2) if row.avg_p95 else None,
-                    "avg_p99_ms": round(float(row.avg_p99), 2) if row.avg_p99 else None,
+                    "avg_ttft_ms": round(float(row.avg_ttft), 2) if row.avg_ttft is not None else None,
+                    "avg_tpot_ms": round(float(row.avg_tpot), 2) if row.avg_tpot is not None else None,
+                    "avg_tps": round(float(row.avg_tps), 2) if row.avg_tps is not None else None,
+                    "avg_rps": round(float(row.avg_rps), 2) if row.avg_rps is not None else None,
+                    "avg_p50_ms": round(float(row.avg_p50), 2) if row.avg_p50 is not None else None,
+                    "avg_p95_ms": round(float(row.avg_p95), 2) if row.avg_p95 is not None else None,
+                    "avg_p99_ms": round(float(row.avg_p99), 2) if row.avg_p99 is not None else None,
                     "total_tokens": int(row.total_tokens or 0),
                     "total_requests": int(row.total_requests or 0),
                     "successful_requests": int(row.successful_requests or 0),
@@ -288,6 +288,7 @@ class AsyncRepository:
 
     async def get_detailed_report_stats(self, run_id: str) -> dict:
         results = await self.get_results_by_run(run_id)
+        hw_snapshots = await self.get_hardware_metrics_by_run(run_id)
         
         tools_used = set()
         scenarios_used = set()
@@ -302,7 +303,8 @@ class AsyncRepository:
             if r.model: models_used.add(r.model)
             
         run_servers = sorted(list(servers_used))
-        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers[:2])}
+        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers)}
+        server_labels = {f"server{i+1}": srv for i, srv in enumerate(run_servers)}
         
         # Breakdown: tool -> scenario -> server -> metrics
         breakdown = {}
@@ -325,6 +327,49 @@ class AsyncRepository:
                 "error_rate": round(r.error_rate * 100, 2) if r.error_rate is not None else 0, # Percentage
                 "total_requests": r.total_requests or 0,
             }
+        
+        # ---- Hardware Summary per server ----
+        hardware_summary = {}
+        hw_by_server = {}
+        for snap in hw_snapshots:
+            mapped = server_map.get(snap.server)
+            if mapped:
+                hw_by_server.setdefault(mapped, []).append(snap)
+        
+        for srv_key, snaps in hw_by_server.items():
+            # Take latest snapshot for static info (gpu_name, vram_total, ram_total)
+            latest = snaps[-1]
+            
+            # Aggregate averages for dynamic metrics
+            def _avg(attr):
+                vals = [getattr(s, attr) for s in snaps if getattr(s, attr) is not None]
+                return round(sum(vals) / len(vals), 2) if vals else None
+            
+            def _max(attr):
+                vals = [getattr(s, attr) for s in snaps if getattr(s, attr) is not None]
+                return round(max(vals), 2) if vals else None
+            
+            hardware_summary[srv_key] = {
+                "gpu_name": latest.gpu_name or "N/A",
+                "gpu_util_avg": _avg("gpu_util_pct"),
+                "gpu_util_max": _max("gpu_util_pct"),
+                "vram_used_avg_gb": _avg("vram_used_gb"),
+                "vram_total_gb": round(latest.vram_total_gb, 2) if latest.vram_total_gb else None,
+                "gpu_power_avg_w": _avg("gpu_power_watts"),
+                "gpu_power_max_w": _max("gpu_power_watts"),
+                "gpu_temp_avg_c": _avg("gpu_temperature_c"),
+                "gpu_temp_max_c": _max("gpu_temperature_c"),
+                "gpu_mem_bw_gbps": _avg("gpu_memory_bandwidth_gbps"),
+                "cpu_avg_pct": _avg("cpu_pct"),
+                "cpu_max_pct": _max("cpu_pct"),
+                "ram_used_avg_gb": _avg("ram_used_gb"),
+                "ram_total_gb": round(latest.ram_total_gb, 2) if latest.ram_total_gb else None,
+                "disk_read_avg_mbps": _avg("disk_read_mbps"),
+                "disk_write_avg_mbps": _avg("disk_write_mbps"),
+                "network_rx_avg_mbps": _avg("network_rx_mbps"),
+                "network_tx_avg_mbps": _avg("network_tx_mbps"),
+                "snapshot_count": len(snaps),
+            }
             
         return {
             "metadata": {
@@ -333,8 +378,11 @@ class AsyncRepository:
                 "servers": sorted(list(servers_used)),
                 "models": sorted(list(models_used)),
                 "total_requests": total_prompts_processed,
+                "server_count": len(run_servers),
+                "server_labels": server_labels,
             },
-            "breakdown": breakdown
+            "breakdown": breakdown,
+            "hardware_summary": hardware_summary,
         }
 
     async def get_comparison_chart_data(self, run_id: str) -> dict:
@@ -357,7 +405,7 @@ class AsyncRepository:
         
         servers_used = set(s.server for s in snapshots)
         run_servers = sorted(list(servers_used))
-        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers[:2])}
+        server_map = {srv: f"server{i+1}" for i, srv in enumerate(run_servers)}
         
         # Group snapshots by server
         snapshots_by_server = {}
@@ -409,26 +457,27 @@ class AsyncRepository:
                 concurrencies_set.add(r.concurrency)
                 
         concurrencies = sorted(list(concurrencies_set))
+        run_servers = sorted(list(agg.keys()))
         
         def _get_val(rows, attr):
             vals = [getattr(r, attr) for r in rows if getattr(r, attr) is not None]
             return sum(vals) / len(vals) if vals else None
 
+        # Dynamic init for N servers
         chart_data = {
             "concurrencies": concurrencies,
-            "ttft": {"server1": {"p50": [], "p95": [], "p99": []}, "server2": {"p50": [], "p95": [], "p99": []}},
-            "itl": {"server1": {"p50": [], "p95": [], "p99": []}, "server2": {"p50": [], "p95": [], "p99": []}},
-            "tps": {"server1": {"p50": [], "p95": [], "p99": []}, "server2": {"p50": [], "p95": [], "p99": []}},
-            "latency": {"server1": {"p50": [], "p95": [], "p99": []}, "server2": {"p50": [], "p95": [], "p99": []}}
+            "server_labels": {f"server{i+1}": srv for i, srv in enumerate(run_servers)},
         }
+        for metric in ["ttft", "itl", "tps", "latency"]:
+            chart_data[metric] = {}
+            for i in range(len(run_servers)):
+                chart_data[metric][f"server{i+1}"] = {"p50": [], "p95": [], "p99": []}
         
-        run_servers = sorted(list(agg.keys()))
-        for i in range(2):
+        for i, actual_server in enumerate(run_servers):
             mapped_key = f"server{i+1}"
-            actual_server = run_servers[i] if i < len(run_servers) else None
             
             for c in concurrencies:
-                rows = agg.get(actual_server, {}).get(c, []) if actual_server else []
+                rows = agg.get(actual_server, {}).get(c, [])
                 
                 # TTFT (Assuming average is used for all percentiles if raw percentiles not available)
                 ttft_avg = _get_val(rows, "ttft_ms")

@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Report - run_stress_1s_1777366182_10</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Styles -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f8fafc; color: #334155; padding: 2rem; }
+        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); margin-bottom: 1.5rem; }
+        .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; background-color: #f1f5f9; color: #475569; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { font-weight: 600; color: #475569; background-color: #f8fafc; font-size: 0.875rem; }
+        .text-right { text-align: right; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .text-emerald-800 { color: #065f46; }
+        .bg-emerald-50 { background-color: #ecfdf5; }
+        .text-violet-800 { color: #5b21b6; }
+        .bg-violet-50 { background-color: #f5f3ff; }
+        .text-sky-800 { color: #075985; }
+        .bg-sky-50 { background-color: #f0f9ff; }
+        .text-red-500 { color: #ef4444; }
+        .print-btn { display: inline-block; padding: 0.5rem 1rem; background-color: #4f46e5; color: white; border-radius: 0.375rem; font-weight: 500; text-decoration: none; cursor: pointer; border: none; }
+        .print-btn:hover { background-color: #4338ca; }
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background-color: white; }
+            .card { box-shadow: none; border: 1px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Comprehensive Report</h1>
+            <p class="text-sm text-slate-500 mt-2">
+                Date: 2026-04-28 14:49 | 
+                Run ID: <span class="font-mono text-violet-700">run_stress_1s_1777366182_10</span>
+            </p>
+        </div>
+        <div class="no-print">
+            <button onclick="window.print()" class="print-btn">Print / Save as PDF</button>
+        </div>
+    </div>
+
+    
+    
+    
+
+    <!-- Metadata Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Test Suite</h4>
+            <div class="text-lg font-bold text-violet-700">Stress</div>
+            <p class="text-[10px] text-slate-400 mt-1 leading-tight">stress suite execution</p>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Prompts</h4>
+            <div class="text-lg font-bold text-slate-900 truncate" title="Default">
+                Default
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1 leading-tight">Prompt Dataset</p>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Servers Evaluated</h4>
+            <div class="flex flex-wrap gap-1">
+                
+                <span class="badge">server1</span>
+                
+            </div>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tools Deployed</h4>
+            <div class="flex flex-wrap gap-1">
+                
+                <span class="badge">ab</span>
+                
+                <span class="badge">locust</span>
+                
+            </div>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Scenarios Tested</h4>
+            <div class="flex flex-wrap gap-1">
+                
+                <span class="badge">chat</span>
+                
+            </div>
+        </div>
+        <div class="card p-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Prompts Processed</h4>
+            <div class="text-2xl font-bold text-slate-900">11400</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Charts -->
+    
+    
+    
+    
+
+    
+
+    <div class="mt-8">
+        
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="flex flex-col lg:flex-row">
+            <!-- Chart Side -->
+            <div class="w-full lg:w-[60%] p-4 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white">
+                <h4 class="text-center font-semibold text-slate-800 mb-4">Time to first token vs concurrency</h4>
+                <div class="relative h-80 w-full">
+                    <canvas id="chart-ttft"></canvas>
+                </div>
+            </div>
+            
+            <!-- Table Side -->
+            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4 overflow-x-auto">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">Concurrency</th>
+                            
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">server1<br><span class="text-xs font-normal opacity-80">(avg ms)</span></th>
+                            
+                            
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">1</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">200.000</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">8</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">107.177</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">16</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">87.055</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">32</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">70.711</td>
+                            
+                            
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+        
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="flex flex-col lg:flex-row">
+            <!-- Chart Side -->
+            <div class="w-full lg:w-[60%] p-4 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white">
+                <h4 class="text-center font-semibold text-slate-800 mb-4">Inter-token latency vs concurrency</h4>
+                <div class="relative h-80 w-full">
+                    <canvas id="chart-itl"></canvas>
+                </div>
+            </div>
+            
+            <!-- Table Side -->
+            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4 overflow-x-auto">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">Concurrency</th>
+                            
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">server1<br><span class="text-xs font-normal opacity-80">(avg ms)</span></th>
+                            
+                            
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">1</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">100.000</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">8</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">53.589</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">16</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">43.528</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">32</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">35.355</td>
+                            
+                            
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+        
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="flex flex-col lg:flex-row">
+            <!-- Chart Side -->
+            <div class="w-full lg:w-[60%] p-4 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white">
+                <h4 class="text-center font-semibold text-slate-800 mb-4">Output token throughput per user vs concurrency</h4>
+                <div class="relative h-80 w-full">
+                    <canvas id="chart-tps"></canvas>
+                </div>
+            </div>
+            
+            <!-- Table Side -->
+            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4 overflow-x-auto">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">Concurrency</th>
+                            
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">server1<br><span class="text-xs font-normal opacity-80">(avg tokens)</span></th>
+                            
+                            
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">1</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">20.000</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">8</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">7.071</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">16</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">5.000</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">32</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">3.536</td>
+                            
+                            
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+        
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="flex flex-col lg:flex-row">
+            <!-- Chart Side -->
+            <div class="w-full lg:w-[60%] p-4 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white">
+                <h4 class="text-center font-semibold text-slate-800 mb-4">Request latency vs concurrency</h4>
+                <div class="relative h-80 w-full">
+                    <canvas id="chart-latency"></canvas>
+                </div>
+            </div>
+            
+            <!-- Table Side -->
+            <div class="w-full lg:w-[40%] flex flex-col justify-start bg-white p-4 overflow-x-auto">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">Concurrency</th>
+                            
+                            <th class="p-2 text-white bg-[#2b4c80] border border-[#1e3a63]">server1<br><span class="text-xs font-normal opacity-80">(avg ms)</span></th>
+                            
+                            
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">1</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">180.000</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">8</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">96.460</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">16</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">78.350</td>
+                            
+                            
+                        </tr>
+                        
+                        
+                        <tr>
+                            <td class="p-2 font-semibold bg-[#67cdef] border border-slate-400 text-slate-900">32</td>
+                            
+                            
+                            
+                                
+                            
+                            <td class="p-2 font-mono border border-slate-300 text-slate-700">63.640</td>
+                            
+                            
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    </div>
+    
+
+    <!-- Hardware Specifications Table -->
+    
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+            <h4 class="font-semibold text-slate-800">🖥️ Hardware Specifications</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 border-b border-slate-200">
+                        <th class="p-3 text-sm font-semibold text-slate-700">Metric</th>
+                        
+                        <th class="p-3 text-sm font-semibold text-center text-violet-800 bg-violet-50">
+                            server1
+                        </th>
+                        
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    <!-- GPU Info -->
+                    <tr class="border-b border-slate-100 bg-blue-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="2">🎮 GPU</td>
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">GPU Model</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            NVIDIA A100 80GB
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">GPU Util (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            86.8%
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">GPU Util (max)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            99.9%
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">VRAM Used (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            56.00 GB
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">VRAM Total</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            80.00 GB
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Power (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            224.5 W
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Power (max)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            252.9 W
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Temp (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            68.3 °C
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Temp (max)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            76.9 °C
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <!-- CPU / RAM -->
+                    <tr class="border-b border-slate-100 bg-green-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="2">💻 CPU / RAM</td>
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">CPU (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            64.6%
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">CPU (max)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            77.0%
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">RAM Used (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            53.78 GB
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">RAM Total</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">
+                            128.00 GB
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <!-- Disk I/O -->
+                    <tr class="border-b border-slate-100 bg-amber-50">
+                        <td class="p-3 font-semibold text-slate-800" colspan="2">💾 Disk / Network I/O</td>
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Disk Read (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">194.77 MB/s</td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Disk Write (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">103.85 MB/s</td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Network RX (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">47.31 MB/s</td>
+                        
+                    </tr>
+                    
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-3 text-slate-600">Network TX (avg)</td>
+                        
+                        
+                        <td class="p-3 text-center font-mono">28.26 MB/s</td>
+                        
+                    </tr>
+                    
+                    <!-- Snapshots count -->
+                    <tr class="bg-slate-50">
+                        <td class="p-3 text-slate-500 text-xs">Data Points</td>
+                        
+                        
+                        <td class="p-3 text-center text-xs text-slate-400">10 snapshots</td>
+                        
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+
+    <!-- Hardware Timeline Charts -->
+    
+    <div class="card p-0 mb-8 overflow-hidden border border-slate-200">
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+            <h4 class="font-semibold text-slate-800">Hardware Timeline</h4>
+        </div>
+        <div class="p-4 bg-white grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-semibold text-slate-700 mb-2">GPU Utilization (%)</h4>
+                <div class="h-60"><canvas id="timeline-chart-gpu"></canvas></div>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-slate-700 mb-2">CPU Utilization (%)</h4>
+                <div class="h-60"><canvas id="timeline-chart-cpu"></canvas></div>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-slate-700 mb-2">RAM Usage (GB)</h4>
+                <div class="h-60"><canvas id="timeline-chart-ram"></canvas></div>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-slate-700 mb-2">Disk Read/Write (MB/s)</h4>
+                <div class="h-60"><canvas id="timeline-chart-disk"></canvas></div>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Breakdown Table — Dynamic N-Server -->
+    <div class="card p-0 overflow-hidden">
+        <div class="p-4 border-b border-slate-200 bg-slate-50">
+            <h4 class="font-semibold text-slate-800">Server Comparison by Tool &amp; Scenario</h4>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-100 border-b border-slate-200">
+                        <th class="p-3 text-sm font-semibold text-slate-700">report_details.tool</th>
+                        <th class="p-3 text-sm font-semibold text-slate-700 border-r border-slate-200">report_details.scenario</th>
+                        
+                        <th colspan="4" class="p-3 text-center text-sm font-semibold text-violet-800 bg-violet-50 ">server1</th>
+                        
+                    </tr>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                        <th class="p-2 border-r border-slate-200" colspan="2"></th>
+                        
+                        <th class="p-2 text-right">TPS</th>
+                        <th class="p-2 text-right">TTFT (ms)</th>
+                        <th class="p-2 text-right">P99 (ms)</th>
+                        <th class="p-2 text-right ">Error %</th>
+                        
+                    </tr>
+                </thead>
+                <tbody class="text-sm">
+                    
+                        
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="p-3 font-medium text-slate-800">locust</td>
+                            <td class="p-3 text-slate-600 border-r border-slate-200">chat</td>
+                            
+                            
+                            
+                            <td class="p-3 text-right font-mono">113.14</td>
+                            <td class="p-3 text-right font-mono">70.71</td>
+                            <td class="p-3 text-right font-mono">141.42</td>
+                            <td class="p-3 text-right font-mono  text-red-500 font-semibold">32.0%</td>
+                            
+                        </tr>
+                        
+                    
+                        
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="p-3 font-medium text-slate-800">ab</td>
+                            <td class="p-3 text-slate-600 border-r border-slate-200">chat</td>
+                            
+                            
+                            
+                            <td class="p-3 text-right font-mono">113.14</td>
+                            <td class="p-3 text-right font-mono">70.71</td>
+                            <td class="p-3 text-right font-mono">141.42</td>
+                            <td class="p-3 text-right font-mono  text-red-500 font-semibold">32.0%</td>
+                            
+                        </tr>
+                        
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+
+</div>
+
+
+<script id="dashboard-chart-data" type="application/json">
+    {"concurrencies": [1, 8, 16, 32], "itl": {"server1": {"p50": [100.0, 53.58867312681466, 43.52752816480621, 35.35533905932738], "p95": [100.0, 53.58867312681466, 43.52752816480621, 35.35533905932738], "p99": [100.0, 53.58867312681466, 43.52752816480621, 35.35533905932738]}}, "latency": {"server1": {"p50": [180.0, 96.45961162826639, 78.34955069665119, 63.63961030678928], "p95": [300.0, 160.766019380444, 130.58258449441865, 106.06601717798213], "p99": [400.0, 214.35469250725865, 174.11011265922485, 141.4213562373095]}}, "server_labels": {"server1": "server1"}, "tps": {"server1": {"p50": [20.0, 56.568542494923804, 80.0, 113.13708498984761], "p95": [20.0, 56.568542494923804, 80.0, 113.13708498984761], "p99": [20.0, 56.568542494923804, 80.0, 113.13708498984761]}}, "ttft": {"server1": {"p50": [200.0, 107.17734625362932, 87.05505632961243, 70.71067811865476], "p95": [200.0, 107.17734625362932, 87.05505632961243, 70.71067811865476], "p99": [200.0, 107.17734625362932, 87.05505632961243, 70.71067811865476]}}}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dataNode = document.getElementById("dashboard-chart-data");
+    if (!dataNode) return;
+    
+    const chartData = JSON.parse(dataNode.textContent);
+    const labels = chartData.concurrencies;
+    const serverLabels = chartData.server_labels || {};
+    const serverKeys = Object.keys(serverLabels);
+    
+    const serverColors = ['#7c3aed', '#16a34a', '#dc2626', '#2563eb', '#d97706', '#0d9488'];
+    const percentileStyles = {
+        'p50': { dash: [], width: 2.5 },
+        'p95': { dash: [6, 3], width: 2 },
+        'p99': { dash: [2, 2], width: 1.5 },
+    };
+    
+    function createDatasets(metricKey, divideByConcurrency = false) {
+        const metricObj = chartData[metricKey];
+        if (!metricObj) return [];
+        
+        function processArray(arr) {
+            if (!arr) return [];
+            const result = [];
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] !== null) {
+                    const yVal = divideByConcurrency && labels[i] > 0 ? arr[i] / labels[i] : arr[i];
+                    result.push({ x: labels[i], y: yVal });
+                }
+            }
+            return result;
+        }
+        
+        const datasets = [];
+        serverKeys.forEach((key, srvIdx) => {
+            const srvData = metricObj[key];
+            if (!srvData) return;
+            const color = serverColors[srvIdx % serverColors.length];
+            const srvName = serverLabels[key] || key;
+            
+            Object.entries(percentileStyles).forEach(([pKey, style]) => {
+                datasets.push({
+                    label: `${srvName} ${pKey}`,
+                    data: processArray(srvData[pKey]),
+                    borderColor: color,
+                    backgroundColor: 'transparent',
+                    borderWidth: style.width,
+                    borderDash: style.dash,
+                    tension: 0.1,
+                    pointRadius: 4,
+                });
+            });
+        });
+        return datasets;
+    }
+    
+    function getOptions(yTitle, isLogarithmic = false) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, font: { size: 10 } } },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                x: { 
+                    title: { display: true, text: 'Concurrency' }, 
+                    grid: { color: '#f1f5f9' },
+                    type: 'logarithmic',
+                    min: Math.min(...labels),
+                    max: Math.max(...labels),
+                    ticks: {
+                        callback: function(value, index, values) {
+                            const allowed = [1, 8, 16, 32, 64, 256];
+                            if (allowed.includes(value)) return value;
+                            return null;
+                        }
+                    }
+                },
+                y: { title: { display: true, text: yTitle }, type: isLogarithmic ? 'logarithmic' : 'linear', grid: { color: '#f1f5f9' }, beginAtZero: !isLogarithmic }
+            }
+        };
+    }
+    
+    new Chart(document.getElementById('chart-ttft'), { type: 'line', data: { datasets: createDatasets('ttft') }, options: getOptions('TTFT (ms)', true) });
+    new Chart(document.getElementById('chart-itl'), { type: 'line', data: { datasets: createDatasets('itl') }, options: getOptions('Latency (ms)', false) });
+    new Chart(document.getElementById('chart-tps'), { type: 'line', data: { datasets: createDatasets('tps', true) }, options: getOptions('Tokens/sec/user', false) });
+    new Chart(document.getElementById('chart-latency'), { type: 'line', data: { datasets: createDatasets('latency') }, options: getOptions('Latency (ms)', true) });
+});
+</script>
+
+
+
+<script id="timeline-data" type="application/json">
+{"server1": {"cpu_pct": [57.7, 55.1, 50.8, 55.2, 63.7, 66.3, 72.6, 71.1, 77.0, 76.9], "disk_read_mbps": [130.18, 162.26, 170.97, 175.23, 176.0, 196.04, 226.15, 236.51, 237.35, 237.04], "disk_write_mbps": [90.94, 81.99, 94.32, 88.03, 104.8, 114.28, 116.64, 115.41, 112.09, 120.01], "gpu_util_pct": [82.1, 76.2, 79.2, 79.6, 85.3, 83.5, 90.9, 95.5, 96.0, 99.9], "ram_used_gb": [45.03, 44.66, 45.32, 47.33, 55.72, 51.13, 59.9, 61.79, 62.32, 64.62], "timestamps": ["2026-04-28T14:49:42.058724", "2026-04-28T14:52:42.058724", "2026-04-28T14:55:42.058724", "2026-04-28T14:58:42.058724", "2026-04-28T15:01:42.058724", "2026-04-28T15:04:42.058724", "2026-04-28T15:07:42.058724", "2026-04-28T15:10:42.058724", "2026-04-28T15:13:42.058724", "2026-04-28T15:16:42.058724"], "vram_used_gb": [48.0, 49.78, 51.56, 53.33, 55.11, 56.89, 58.67, 60.44, 62.22, 64.0]}, "timestamps": ["2026-04-28T14:49:42.058724", "2026-04-28T14:52:42.058724", "2026-04-28T14:55:42.058724", "2026-04-28T14:58:42.058724", "2026-04-28T15:01:42.058724", "2026-04-28T15:04:42.058724", "2026-04-28T15:07:42.058724", "2026-04-28T15:10:42.058724", "2026-04-28T15:13:42.058724", "2026-04-28T15:16:42.058724"]}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dataNode = document.getElementById("timeline-data");
+    if (!dataNode) return;
+    
+    const timelineData = JSON.parse(dataNode.textContent);
+    if (!timelineData || Object.keys(timelineData).length === 0) return;
+    
+    const servers = Object.keys(timelineData).filter(k => k !== "timestamps");
+    const colors = ["#a855f7", "#9ca3af", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+    
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        parsing: false,
+        plugins: { legend: { labels: { color: "#475569", boxWidth: 12, padding: 8 } } },
+        scales: {
+            x: {
+                type: "category",
+                ticks: {
+                    color: "#64748b",
+                    maxTicksLimit: 10,
+                    callback: function(value) {
+                        const label = this.getLabelForValue(value);
+                        return label ? label.slice(11, 19) : "";
+                    }
+                },
+                grid: { color: "rgba(148,163,184,0.18)" }
+            },
+            y: { ticks: { color: "#64748b" }, grid: { color: "rgba(148,163,184,0.18)" } }
+        }
+    };
+
+    function createChart(canvasId, datasets) {
+        const canvas = document.getElementById(canvasId);
+        if (canvas) {
+            new Chart(canvas, { type: "line", data: { labels: timelineData.timestamps, datasets }, options: commonOptions });
+        }
+    }
+
+    createChart("timeline-chart-gpu", servers.map((srv, i) => ({
+        label: `${srv}`,
+        data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].gpu_util_pct[idx] })),
+        borderColor: colors[i % colors.length],
+        backgroundColor: "transparent",
+        tension: 0.2, borderWidth: 2, pointRadius: 4
+    })));
+
+    createChart("timeline-chart-cpu", servers.map((srv, i) => ({
+        label: `${srv}`,
+        data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].cpu_pct[idx] })),
+        borderColor: colors[i % colors.length],
+        backgroundColor: "transparent",
+        tension: 0.2, borderWidth: 2, pointRadius: 4
+    })));
+
+    createChart("timeline-chart-ram", servers.map((srv, i) => ({
+        label: `${srv}`,
+        data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].ram_used_gb[idx] })),
+        borderColor: colors[i % colors.length],
+        backgroundColor: "transparent",
+        tension: 0.2, borderWidth: 2, pointRadius: 4
+    })));
+
+    const diskDatasets = [];
+    servers.forEach((srv, i) => {
+        const c = colors[i % colors.length];
+        diskDatasets.push({
+            label: `${srv} (Read)`,
+            data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_read_mbps[idx] })),
+            borderColor: c, backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 4
+        });
+        diskDatasets.push({
+            label: `${srv} (Write)`,
+            data: timelineData[srv].timestamps.map((ts, idx) => ({ x: ts, y: timelineData[srv].disk_write_mbps[idx] })),
+            borderColor: c, borderDash: [5, 5], backgroundColor: "transparent", tension: 0.2, borderWidth: 2, pointRadius: 4
+        });
+    });
+    createChart("timeline-chart-disk", diskDatasets);
+});
+</script>
+
+</body>
+</html>

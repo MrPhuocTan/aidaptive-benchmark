@@ -76,11 +76,30 @@ class AgentClient:
         return {}
 
     async def get_gpu_metrics(self) -> Optional[dict]:
+        """Fetch GPU metrics from agent and normalize keys.
+        
+        Agent returns: {"gpus": [{"gpu_util_pct": .., "memory_used_mb": .., 
+                                   "memory_total_mb": .., "power_w": .., 
+                                   "temperature_c": .., "name": ..}]}
+        We extract gpus[0] and normalize to a flat dict with consistent keys.
+        """
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.get(f"{self.agent_url}/metrics/gpu")
                 if resp.status_code == 200:
-                    return resp.json()
+                    data = resp.json()
+                    gpus = data.get("gpus", [])
+                    if not gpus:
+                        return None
+                    raw = gpus[0]
+                    return {
+                        "gpu_util_pct": raw.get("gpu_util_pct"),
+                        "vram_used_gb": (raw.get("memory_used_mb") or 0) / 1024,
+                        "vram_total_gb": (raw.get("memory_total_mb") or 0) / 1024,
+                        "gpu_power_watts": raw.get("power_w"),
+                        "gpu_temperature_c": raw.get("temperature_c"),
+                        "gpu_name": raw.get("name", ""),
+                    }
         except Exception:
             pass
         return None
@@ -105,12 +124,12 @@ class AgentClient:
         metrics = HardwareMetrics(server=self.server_id)
 
         if gpu:
+            # Keys already normalized by get_gpu_metrics()
             metrics.gpu_util_pct = gpu.get("gpu_util_pct")
             metrics.vram_used_gb = gpu.get("vram_used_gb")
             metrics.vram_total_gb = gpu.get("vram_total_gb")
-            metrics.gpu_power_watts = gpu.get("power_watts")
-            metrics.gpu_temperature_c = gpu.get("temperature_c")
-            metrics.gpu_memory_bandwidth_gbps = gpu.get("memory_bandwidth_gbps")
+            metrics.gpu_power_watts = gpu.get("gpu_power_watts")
+            metrics.gpu_temperature_c = gpu.get("gpu_temperature_c")
             metrics.gpu_name = gpu.get("gpu_name", "")
 
         if sys_m:

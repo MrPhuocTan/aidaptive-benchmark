@@ -5,17 +5,14 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from src.database.engine import Database
 from src.database.repository import Repository
-from src.config import load_config
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
 router = APIRouter()
-config = load_config()
-database = Database(config.postgres)
 
 def get_repo():
+    from src.app import database
     session = database.get_sync_session()
     try:
         yield Repository(session)
