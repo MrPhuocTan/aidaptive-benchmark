@@ -8,10 +8,10 @@ import tempfile
 from src.time_utils import get_local_time
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Optional
 
 from src.adapters.base import BaseToolAdapter
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 
 class LLMPerfAdapter(BaseToolAdapter):
@@ -30,7 +30,7 @@ class LLMPerfAdapter(BaseToolAdapter):
         except ImportError:
             return False
 
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
         """Run llmperf benchmark against OpenAI-compatible endpoint"""
 
         if not self.is_available():
@@ -40,7 +40,7 @@ class LLMPerfAdapter(BaseToolAdapter):
                 model=self.model,
                 error_rate=1.0,
             )
-            return [result]
+            return [result], [], None
 
         num_requests = len(prompts)
 
@@ -104,7 +104,26 @@ class LLMPerfAdapter(BaseToolAdapter):
                     result.successful_requests = result.total_requests
                     result.error_rate = summary.get("results_error_rate", 0)
 
-                    return [result]
+                    evidence = ToolEvidence(
+                        tool_name=self.tool_name,
+                        tool_version="unknown",
+                        command_line=" ".join(cmd),
+                        raw_output=json.dumps(summary, indent=2),
+                        output_format="json",
+                    )
+                    
+                    p_log = PromptLogEntry(
+                        prompt_index=0,
+                        prompt_text="(Randomized prompts by llmperf)",
+                        response_text="(Load Test - Raw response not captured by llmperf)",
+                        sent_at=get_local_time(),
+                        completed_at=get_local_time(),
+                        tps=result.tps,
+                        ttft_ms=result.ttft_ms,
+                        tpot_ms=result.tpot_ms,
+                    )
+
+                    return [result], [p_log], evidence
 
             except asyncio.TimeoutError as e:
                 import logging

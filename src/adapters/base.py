@@ -2,9 +2,9 @@
 
 import shutil
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple, Optional
 
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 
 class BaseToolAdapter(ABC):
@@ -13,8 +13,8 @@ class BaseToolAdapter(ABC):
     tool_name: str = ""
 
     @abstractmethod
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
-        """Run benchmark and return normalized results"""
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
+        """Run benchmark and return results, prompt logs, and raw evidence"""
         pass
 
     def is_available(self) -> bool:

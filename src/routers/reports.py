@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app import _render, get_db, _database_ready, _db_warning_payload, config
 from src.database.repository import AsyncRepository
+from src.time_utils import get_local_time
 
 router = APIRouter()
 
@@ -139,6 +140,7 @@ async def export_excel(
         hardware = await repo.get_hardware_metrics_by_run(run_id)
         comparisons = await repo.get_comparisons_by_run(run_id)
         report_data = await repo.get_detailed_report_stats(run_id)
+        prompt_logs = await repo.get_prompt_logs_by_run(run_id)
     except SQLAlchemyError:
         return RedirectResponse(url="/reports")
 
@@ -316,6 +318,46 @@ async def export_excel(
                 len(str(comp_headers[col_idx - 1])) + 2, 12
             )
 
+    # =============================================
+    # Sheet 5: Prompt Details
+    # =============================================
+    if prompt_logs:
+        ws_prompts = wb.create_sheet("Prompt Details")
+        prompt_headers = [
+            "#", "Server", "Tool", "Scenario", "Model", "Concurrency",
+            "Prompt Text", "Response Text", "Sent At", "First Token At", "Completed At",
+            "TTFT (ms)", "TPS", "TPOT (ms)", "Tokens Generated", "Status", "Error"
+        ]
+        ws_prompts.append(prompt_headers)
+        style_header_row(ws_prompts, 1, len(prompt_headers))
+
+        for idx, p in enumerate(prompt_logs, 1):
+            ws_prompts.append([
+                idx,
+                p.server,
+                p.tool,
+                p.scenario,
+                p.model,
+                p.concurrency,
+                p.prompt_text,
+                p.response_text or "",
+                p.sent_at.strftime("%Y-%m-%d %H:%M:%S") if p.sent_at else "",
+                p.first_token_at.strftime("%Y-%m-%d %H:%M:%S") if p.first_token_at else "",
+                p.completed_at.strftime("%Y-%m-%d %H:%M:%S") if p.completed_at else "",
+                round(p.ttft_ms, 2) if p.ttft_ms is not None else None,
+                round(p.tps, 2) if p.tps is not None else None,
+                round(p.tpot_ms, 2) if p.tpot_ms is not None else None,
+                p.tokens_generated,
+                p.status,
+                p.error_message or ""
+            ])
+            
+        for col_idx in range(1, len(prompt_headers) + 1):
+            width = max(len(str(prompt_headers[col_idx - 1])) + 2, 12)
+            if col_idx in [7, 8]:  # Prompt Text, Response Text
+                width = 50
+            ws_prompts.column_dimensions[ws_prompts.cell(1, col_idx).column_letter].width = width
+
     # --- Write to buffer and return ---
     output = io.BytesIO()
     wb.save(output)
@@ -329,3 +371,85 @@ async def export_excel(
         },
     )
 
+# --------------------------------------------------
+# Evidence Export — Raw data + Integrity Check
+# --------------------------------------------------
+@router.get("/reports/{run_id}/export/evidence")
+async def export_evidence(
+    run_id: str,
+    session: AsyncSession = Depends(get_db),
+):
+    import io
+    import json
+    import zipfile
+    import hashlib
+    import socket
+    import platform
+    from fastapi.responses import StreamingResponse
+    
+    if not _database_ready():
+        return RedirectResponse(url="/reports")
+
+    repo = AsyncRepository(session)
+    try:
+        run = await repo.get_run(run_id)
+        if not run:
+            return RedirectResponse(url="/reports")
+        evidences = await repo.get_evidence_by_run(run_id)
+    except SQLAlchemyError:
+        return RedirectResponse(url="/reports")
+
+    # Create ZIP buffer
+    zip_buffer = io.BytesIO()
+    
+    manifest = {
+        "benchmark_run_id": run.run_id,
+        "generated_at": get_local_time().isoformat(),
+        "system_version": "aiDaptive Benchmark Suite v2.1",
+        "integrity_method": "SHA-256",
+        "environment": {
+            "controller_hostname": socket.gethostname(),
+            "python_version": platform.python_version(),
+            "os": platform.platform()
+        },
+        "evidence_files": []
+    }
+    
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for ev in evidences:
+            ext = "txt"
+            if ev.output_format == "json":
+                ext = "json"
+            elif ev.output_format == "csv":
+                ext = "csv"
+                
+            filename = f"{ev.tool_name}_{ev.server}_{ev.scenario}_c{ev.concurrency}_{ev.id}.{ext}"
+            content = ev.raw_output.encode('utf-8') if ev.raw_output else b""
+            
+            zip_file.writestr(filename, content)
+            
+            sha256_hash = hashlib.sha256(content).hexdigest()
+            manifest["evidence_files"].append({
+                "filename": filename,
+                "tool": ev.tool_name,
+                "tool_version": ev.tool_version,
+                "command_line": ev.command_line,
+                "server": ev.server,
+                "scenario": ev.scenario,
+                "captured_at": ev.captured_at.isoformat() if ev.captured_at else None,
+                "file_size_bytes": len(content),
+                "sha256": sha256_hash
+            })
+            
+        # Add manifest
+        manifest_content = json.dumps(manifest, indent=2).encode('utf-8')
+        zip_file.writestr("MANIFEST.json", manifest_content)
+        
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="aidaptive_evidence_{run_id}.zip"'
+        },
+    )

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from src.time_utils import get_local_time
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 
 class ServerID(str, Enum):
@@ -104,3 +104,34 @@ class ServerStatus:
     gpu_name: str = ""
     vram_total_gb: float = 0
     ollama_version: str = ""
+
+
+@dataclass
+class ToolEvidence:
+    """Raw output from a benchmark tool, used for integrity verification"""
+    tool_name: str = ""
+    tool_version: str = "unknown"
+    command_line: str = ""
+    raw_output: str = ""              # Raw content (JSON/CSV/text)
+    output_format: str = "json"       # "json", "csv", "text"
+    captured_at: datetime = field(default_factory=get_local_time)
+    server: str = ""
+    scenario: str = ""
+    concurrency: int = 1
+
+
+@dataclass
+class PromptLogEntry:
+    """Per-prompt detail log for evidence reporting"""
+    prompt_index: int = 0
+    prompt_text: str = ""
+    response_text: str = ""
+    sent_at: datetime = field(default_factory=get_local_time)
+    first_token_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    ttft_ms: Optional[float] = None
+    tps: Optional[float] = None
+    tpot_ms: Optional[float] = None
+    tokens_generated: Optional[int] = None
+    status: str = "success"           # "success" or "error"
+    error_message: Optional[str] = None

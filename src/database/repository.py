@@ -14,9 +14,10 @@ from src.database.tables import (
     HardwareSnapshot,
     ServerComparison,
     ServerProfile,
-    RunStatus,
     PromptSet,
     PromptEntry,
+    PromptLog,
+    BenchmarkEvidence,
 )
 
 
@@ -238,6 +239,22 @@ class AsyncRepository:
             select(ServerComparison)
             .filter_by(run_id=run_id)
             .order_by(ServerComparison.id)
+        )
+        return result.scalars().all()
+
+    async def get_prompt_logs_by_run(self, run_id: str) -> list:
+        result = await self.session.execute(
+            select(PromptLog)
+            .filter_by(run_id=run_id)
+            .order_by(PromptLog.sent_at)
+        )
+        return result.scalars().all()
+
+    async def get_evidence_by_run(self, run_id: str) -> list:
+        result = await self.session.execute(
+            select(BenchmarkEvidence)
+            .filter_by(run_id=run_id)
+            .order_by(BenchmarkEvidence.captured_at)
         )
         return result.scalars().all()
 

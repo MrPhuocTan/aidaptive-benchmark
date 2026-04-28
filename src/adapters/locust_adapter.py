@@ -9,10 +9,10 @@ import tempfile
 from src.time_utils import get_local_time
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Optional
 
 from src.adapters.base import BaseToolAdapter
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 
 class LocustAdapter(BaseToolAdapter):
@@ -37,7 +37,7 @@ class LocustAdapter(BaseToolAdapter):
             return self.check_binary(self.binary_path)
         return importlib.util.find_spec("locust") is not None
 
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
         if not self.is_available():
             result = BenchmarkResult(
                 timestamp=get_local_time(),
@@ -45,7 +45,7 @@ class LocustAdapter(BaseToolAdapter):
                 model=self.model,
                 error_rate=1.0,
             )
-            return [result]
+            return [result], [], None
 
         prompts_payload = [
             item.get("prompt", "Hello") if isinstance(item, dict) else str(item)
@@ -77,8 +77,38 @@ class LocustAdapter(BaseToolAdapter):
                 )
 
                 stats_file = Path(f"{csv_prefix}_stats.csv")
+                failures_file = Path(f"{csv_prefix}_failures.csv")
+                history_file = Path(f"{csv_prefix}_stats_history.csv")
+                
                 if proc.returncode == 0 and stats_file.exists():
-                    return [self._parse_stats_csv(stats_file)]
+                    result = self._parse_stats_csv(stats_file)
+                    
+                    raw_data = {
+                        "stats_csv": stats_file.read_text(encoding="utf-8") if stats_file.exists() else "",
+                        "failures_csv": failures_file.read_text(encoding="utf-8") if failures_file.exists() else "",
+                        "history_csv": history_file.read_text(encoding="utf-8") if history_file.exists() else "",
+                    }
+                    
+                    evidence = ToolEvidence(
+                        tool_name=self.tool_name,
+                        tool_version="unknown",
+                        command_line=" ".join(cmd),
+                        raw_output=json.dumps(raw_data, indent=2),
+                        output_format="json",
+                    )
+                    
+                    p_log = PromptLogEntry(
+                        prompt_index=0,
+                        prompt_text=prompts_payload[0] if prompts_payload else "Hello",
+                        response_text="(Load Test - Raw response not captured by Locust)",
+                        sent_at=get_local_time(),
+                        completed_at=get_local_time(),
+                        tps=result.tps,
+                        ttft_ms=result.ttft_ms,
+                        tpot_ms=result.tpot_ms,
+                    )
+                    
+                    return [result], [p_log], evidence
             except asyncio.TimeoutError:
                 proc.kill()
                 await proc.communicate()

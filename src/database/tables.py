@@ -22,6 +22,49 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 class Base(DeclarativeBase):
     pass
 
+class PromptLog(Base):
+    __tablename__ = "prompt_logs"
+    
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), ForeignKey("benchmark_runs.run_id"), nullable=False, index=True)
+    server = Column(String(50), nullable=False)
+    tool = Column(String(50), nullable=False)
+    scenario = Column(String(100), nullable=False)
+    model = Column(String(100), nullable=False)
+    concurrency = Column(Integer, default=1)
+    prompt_index = Column(Integer, nullable=False)
+    
+    prompt_text = Column(Text, nullable=False)
+    response_text = Column(Text, nullable=True)
+    
+    sent_at = Column(DateTime, nullable=False)
+    first_token_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    
+    ttft_ms = Column(Float, nullable=True)
+    tps = Column(Float, nullable=True)
+    tpot_ms = Column(Float, nullable=True)
+    tokens_generated = Column(Integer, nullable=True)
+    
+    status = Column(String(20), default="success")
+    error_message = Column(Text, nullable=True)
+
+class BenchmarkEvidence(Base):
+    __tablename__ = "benchmark_evidence"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    run_id = Column(String(64), ForeignKey("benchmark_runs.run_id"), nullable=False, index=True)
+    server = Column(String(50), nullable=False)
+    scenario = Column(String(100), nullable=False)
+    concurrency = Column(Integer, default=1)
+    
+    tool_name = Column(String(50), nullable=False)
+    tool_version = Column(String(50), nullable=True)
+    command_line = Column(Text, nullable=True)
+    raw_output = Column(Text, nullable=True)  # Store raw text/json/csv
+    output_format = Column(String(20), nullable=True)
+    captured_at = Column(DateTime, default=get_local_time)
+
 
 class RunStatus(str, enum.Enum):
     PENDING = "pending"
@@ -65,6 +108,15 @@ class BenchmarkRun(Base):
         back_populates="run",
         cascade="all, delete-orphan",
     )
+    prompt_logs = relationship(
+        "PromptLog",
+        cascade="all, delete-orphan",
+    )
+    evidences = relationship(
+        "BenchmarkEvidence",
+        cascade="all, delete-orphan",
+    )
+
 
 
 class BenchmarkResultRow(Base):

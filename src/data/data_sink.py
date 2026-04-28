@@ -8,8 +8,10 @@ from src.database.tables import (
     BenchmarkResultRow,
     HardwareSnapshot,
     ServerComparison,
+    BenchmarkEvidence,
+    PromptLog,
 )
-from src.models import BenchmarkResult, HardwareMetrics
+from src.models import BenchmarkResult, HardwareMetrics, ToolEvidence, PromptLogEntry
 
 
 class DataSink:
@@ -143,3 +145,64 @@ class DataSink:
             print(f"  PostgreSQL delete error: {e}")
         finally:
             repo_session.close()
+
+    def write_evidence(self, run_id: str, evidence: ToolEvidence):
+        """Write raw tool evidence to PostgreSQL"""
+        session = self.db.get_sync_session()
+        try:
+            db_evidence = BenchmarkEvidence(
+                run_id=run_id,
+                server=evidence.server,
+                scenario=evidence.scenario,
+                concurrency=evidence.concurrency,
+                tool_name=evidence.tool_name,
+                tool_version=evidence.tool_version,
+                command_line=evidence.command_line,
+                raw_output=evidence.raw_output,
+                output_format=evidence.output_format,
+                captured_at=evidence.captured_at,
+            )
+            session.add(db_evidence)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            print(f"  PostgreSQL write error (evidence): {e}")
+        finally:
+            session.close()
+
+    def write_prompt_logs(self, run_id: str, server: str, tool: str, scenario: str, model: str, concurrency: int, logs: list[PromptLogEntry]):
+        """Write per-prompt detail logs to PostgreSQL"""
+        if not logs:
+            return
+            
+        session = self.db.get_sync_session()
+        try:
+            for log in logs:
+                db_log = PromptLog(
+                    run_id=run_id,
+                    server=server,
+                    tool=tool,
+                    scenario=scenario,
+                    model=model,
+                    concurrency=concurrency,
+                    prompt_index=log.prompt_index,
+                    prompt_text=log.prompt_text,
+                    response_text=log.response_text,
+                    sent_at=log.sent_at,
+                    first_token_at=log.first_token_at,
+                    completed_at=log.completed_at,
+                    ttft_ms=log.ttft_ms,
+                    tps=log.tps,
+                    tpot_ms=log.tpot_ms,
+                    tokens_generated=log.tokens_generated,
+                    status=log.status,
+                    error_message=log.error_message,
+                )
+                session.add(db_log)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            print(f"  PostgreSQL write error (prompt logs): {e}")
+        finally:
+            session.close()
+

@@ -4,12 +4,12 @@ import asyncio
 import time
 from src.time_utils import get_local_time
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Optional
 
 import httpx
 
 from src.adapters.base import BaseToolAdapter
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 
 class VLLMBenchAdapter(BaseToolAdapter):
@@ -28,7 +28,7 @@ class VLLMBenchAdapter(BaseToolAdapter):
     def is_available(self) -> bool:
         return True
 
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
         """
         Simulate vLLM-style benchmark against OpenAI-compatible API.
         Sends concurrent requests and measures throughput.
@@ -36,7 +36,7 @@ class VLLMBenchAdapter(BaseToolAdapter):
 
         prompt_texts = [p.get("prompt", "Hello") for p in prompts]
         if not prompt_texts:
-            return []
+            return [], [], None
 
         all_latencies = []
         all_ttft = []
@@ -46,14 +46,24 @@ class VLLMBenchAdapter(BaseToolAdapter):
         total_failures = 0
 
         start_time = time.perf_counter()
+        
+        prompt_logs = []
+        raw_outputs = []
 
         semaphore = asyncio.Semaphore(self.concurrency)
         
         limits = httpx.Limits(max_keepalive_connections=self.concurrency + 10, max_connections=self.concurrency + 10)
         async with httpx.AsyncClient(timeout=1200.0, limits=limits) as client:
-            async def send_one(prompt_text: str):
+            async def send_one(prompt_text: str, index: int):
                 nonlocal total_output_tokens, total_successes, total_failures
 
+                p_log = PromptLogEntry(
+                    prompt_index=index,
+                    prompt_text=prompt_text,
+                    sent_at=get_local_time(),
+                )
+                raw_response = {"prompt": prompt_text, "chunks": []}
+                
                 async with semaphore:
                     req_start = time.perf_counter()
                     try:
@@ -90,16 +100,22 @@ class VLLMBenchAdapter(BaseToolAdapter):
                                     
                                 try:
                                     chunk = json.loads(data_str)
+                                    raw_response["chunks"].append(chunk)
                                     choices = chunk.get("choices", [])
                                     if choices and choices[0].get("delta", {}).get("content"):
+                                        content = choices[0]["delta"]["content"]
+                                        p_log.response_text += content
                                         output_tokens += 1
                                         if ttft is None:
                                             ttft = (time.perf_counter() - req_start) * 1000
+                                            p_log.first_token_at = get_local_time()
                                 except json.JSONDecodeError:
                                     pass
 
                         req_end = time.perf_counter()
+                        p_log.completed_at = get_local_time()
                         latency = (req_end - req_start) * 1000
+
 
                         all_latencies.append(latency)
                         if ttft is not None:
@@ -111,14 +127,26 @@ class VLLMBenchAdapter(BaseToolAdapter):
                         if output_tokens > 0 and latency > 0:
                             tps = output_tokens / (latency / 1000)
                             all_tps.append(tps)
+                            p_log.tps = tps
+                            
+                        p_log.ttft_ms = ttft
+                        if output_tokens > 0:
+                            p_log.tpot_ms = (latency - (ttft or 0)) / output_tokens
+                        p_log.tokens_generated = output_tokens
 
                     except Exception as e:
                         total_failures += 1
+                        p_log.status = "error"
+                        p_log.error_message = str(e)
                         import logging
                         logging.getLogger(__name__).warning("vLLM request failed: %s", e)
+                        
+                    prompt_logs.append(p_log)
+                    raw_outputs.append(raw_response)
 
-            tasks = [send_one(p) for p in prompt_texts]
+            tasks = [send_one(p, i) for i, p in enumerate(prompt_texts)]
             await asyncio.gather(*tasks, return_exceptions=True)
+
 
         end_time = time.perf_counter()
         total_time = end_time - start_time
@@ -152,4 +180,12 @@ class VLLMBenchAdapter(BaseToolAdapter):
         if result.total_requests > 0:
             result.error_rate = total_failures / result.total_requests
 
-        return [result]
+        evidence = ToolEvidence(
+            tool_name=self.tool_name,
+            tool_version="native",
+            command_line="vLLM stream simulation API",
+            raw_output=__import__("json").dumps(raw_outputs, indent=2),
+            output_format="json",
+        )
+
+        return [result], prompt_logs, evidence

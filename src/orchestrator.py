@@ -417,7 +417,27 @@ class Orchestrator:
                     style="yellow",
                 )
             else:
-                results = await adapter.run(prompts)
+                results, prompt_logs, evidence = await adapter.run(prompts)
+                
+                # Write evidence
+                if evidence:
+                    evidence.server = server_id
+                    evidence.scenario = scenario
+                    evidence.concurrency = concurrency
+                    self.data_sink.write_evidence(run_id, evidence)
+                
+                # Write prompt logs
+                if prompt_logs:
+                    self.data_sink.write_prompt_logs(
+                        run_id=run_id,
+                        server=server_id,
+                        tool=tool_name,
+                        scenario=scenario,
+                        model=model,
+                        concurrency=concurrency,
+                        logs=prompt_logs
+                    )
+                
                 result_count = 0
                 for result in results:
                     result.run_id = run_id

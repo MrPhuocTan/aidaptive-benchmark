@@ -12,6 +12,7 @@
             <p class="text-sm text-slate-500 mt-2">{{ t("common.date") }}: {{ run.started_at.strftime('%Y-%m-%d %H:%M') }} | Run ID: <span class="font-mono text-violet-700">{{ run.run_id }}</span></p>
         </div>
         <div class="flex gap-2">
+            <a href="/reports/{{ run.run_id }}/export/evidence" class="btn-primary bg-indigo-600 hover:bg-indigo-700">📦 Download Evidence</a>
             <a href="/reports/{{ run.run_id }}/export/excel" class="btn-primary">📥 Export Excel</a>
             <a href="/reports/{{ run.run_id }}/download" class="btn-primary">{{ t("report_details.download") | default("Download HTML") }}</a>
             <button onclick="window.print()" class="btn-secondary">{{ t("report_details.print") }}</button>

@@ -4,12 +4,12 @@ import time
 import json
 from src.time_utils import get_local_time
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Optional
 
 import httpx
 
 from src.adapters.base import BaseToolAdapter
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 
 class OllamaAdapter(BaseToolAdapter):
@@ -22,18 +22,33 @@ class OllamaAdapter(BaseToolAdapter):
     def is_available(self) -> bool:
         return True
 
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
         results = []
+        prompt_logs = []
+        raw_outputs = []
 
-        for item in prompts:
+
+        for i, item in enumerate(prompts):
             prompt_text = item.get("prompt", "")
-            result = await self._single_request(prompt_text)
+            result, p_log, raw_resp = await self._single_request(prompt_text, i)
             if result:
                 results.append(result)
+            if p_log:
+                prompt_logs.append(p_log)
+            if raw_resp:
+                raw_outputs.append(raw_resp)
 
-        return results
+        evidence = ToolEvidence(
+            tool_name=self.tool_name,
+            tool_version="native",
+            command_line="API POST /api/generate",
+            raw_output=json.dumps(raw_outputs, indent=2),
+            output_format="json",
+        ) if raw_outputs else None
 
-    async def _single_request(self, prompt: str) -> BenchmarkResult:
+        return results, prompt_logs, evidence
+
+    async def _single_request(self, prompt: str, index: int) -> Tuple[BenchmarkResult, PromptLogEntry, dict]:
         """Send single request and measure metrics from Ollama response"""
 
         result = BenchmarkResult(
@@ -41,11 +56,18 @@ class OllamaAdapter(BaseToolAdapter):
             tool=self.tool_name,
             model=self.model,
         )
+        p_log = PromptLogEntry(
+            prompt_index=index,
+            prompt_text=prompt,
+        )
+        raw_data = {}
 
         try:
             wall_start = time.perf_counter()
+            p_log.sent_at = get_local_time()
 
             async with httpx.AsyncClient(timeout=600.0) as client:
+
                 resp = await client.post(
                     f"{self.ollama_url}/api/generate",
                     json={
@@ -56,11 +78,16 @@ class OllamaAdapter(BaseToolAdapter):
                 )
 
             wall_end = time.perf_counter()
+            p_log.completed_at = get_local_time()
 
             if resp.status_code != 200:
+                p_log.status = "error"
+                p_log.error_message = f"HTTP {resp.status_code}: {resp.text}"
                 raise RuntimeError(f"Ollama API returned HTTP {resp.status_code}: {resp.text}")
 
             data = resp.json()
+            raw_data = data
+
 
             # Extract Ollama native metrics (nanoseconds)
             total_duration = data.get("total_duration", 0)
@@ -94,11 +121,20 @@ class OllamaAdapter(BaseToolAdapter):
             result.successful_requests = 1
             result.failed_requests = 0
             result.error_rate = 0.0
+            
+            p_log.response_text = data.get("response", "")
+            p_log.ttft_ms = result.ttft_ms
+            p_log.tpot_ms = result.tpot_ms
+            p_log.tps = result.tps
+            p_log.tokens_generated = eval_count
 
         except Exception as e:
-            raise RuntimeError(f"Ollama request failed: {e}")
+            p_log.status = "error"
+            p_log.error_message = str(e)
+            import logging
+            logging.getLogger(__name__).error(f"Ollama request failed: {e}")
 
-        return result
+        return result, p_log, raw_data
 
     async def run_streaming(self, prompt: str) -> BenchmarkResult:
         """Send streaming request to measure ITL (inter-token latency)"""

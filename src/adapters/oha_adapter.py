@@ -5,10 +5,10 @@ import json
 import logging
 from src.time_utils import get_local_time
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Optional
 
 from src.adapters.base import BaseToolAdapter
-from src.models import BenchmarkResult
+from src.models import BenchmarkResult, PromptLogEntry, ToolEvidence
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,16 @@ class OhaAdapter(BaseToolAdapter):
     def is_available(self) -> bool:
         return self.check_binary(self.binary_path)
 
-    async def run(self, prompts: list) -> List[BenchmarkResult]:
+    async def run(self, prompts: list) -> Tuple[List[BenchmarkResult], List[PromptLogEntry], Optional[ToolEvidence]]:
+        if not self.is_available():
+            result = BenchmarkResult(
+                timestamp=get_local_time(),
+                tool=self.tool_name,
+                model=self.model,
+                error_rate=1.0,
+            )
+            return [result], [], None
+
         prompt_text = prompts[0].get("prompt", "Hello") if prompts else "Hello"
 
         payload = json.dumps({
@@ -55,6 +64,8 @@ class OhaAdapter(BaseToolAdapter):
             f"{self.ollama_url}/api/generate",
         ]
 
+        sent_at = get_local_time()
+
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -67,7 +78,28 @@ class OhaAdapter(BaseToolAdapter):
 
             if proc.returncode == 0 and stdout:
                 data = json.loads(stdout.decode())
-                return [self._parse_results(data)]
+                result = self._parse_results(data)
+                
+                evidence = ToolEvidence(
+                    tool_name=self.tool_name,
+                    tool_version="unknown",
+                    command_line=" ".join(cmd),
+                    raw_output=stdout.decode(),
+                    output_format="json",
+                )
+                
+                p_log = PromptLogEntry(
+                    prompt_index=0,
+                    prompt_text=prompt_text,
+                    response_text="(Load Test - Raw response not captured by oha)",
+                    sent_at=sent_at,
+                    completed_at=get_local_time(),
+                    tps=result.tps,
+                    ttft_ms=result.ttft_ms,
+                    tpot_ms=result.tpot_ms,
+                )
+                
+                return [result], [p_log], evidence
 
             stderr_text = stderr.decode(errors="ignore").strip()
             if stderr_text:
