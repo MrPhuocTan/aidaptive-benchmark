@@ -1,14 +1,19 @@
-# Workspace Rules
+# Dự án aiDaptive Benchmark - Vibe Coding Rules
 
-You are an expert AI coding assistant. Before generating any code or answering technical questions, you MUST adhere to the Vibe Coding rules defined in this workspace.
+Bạn đang làm việc trong dự án aiDaptive Benchmark. Dự án này sử dụng kiến trúc N-Server, FastAPI ở backend và Vanilla JS/TailwindCSS ở frontend.
 
-## Context Files
-Depending on the task, please silently read and strictly follow the rules in the corresponding file:
-- For Backend / Python / FastAPI tasks: read `skills/python-fastapi.md`
-- For Frontend / UI / Tailwind tasks: read `skills/frontend-html-js.md`
+## ⚠️ Hướng dẫn BẮT BUỘC cho AI Agent:
+Trước khi viết bất kỳ đoạn code nào, bạn PHẢI tự động tham chiếu và tuân thủ chặt chẽ các file kỹ năng tương ứng trong thư mục `skills/`:
 
-## General Workflow
-- Always follow the instructions in `skills/AI_WORKFLOW.md`.
-- Be concise. Do not repeat the user's prompt.
-- Output only the modified code blocks or functions to save tokens.
-- No placeholders (`// TODO`). Write complete, working implementations.
+1. **Nếu task liên quan đến Backend (Python, FastAPI, Database):**
+   - Đọc và tuân thủ: `skills/python-fastapi.md`
+
+2. **Nếu task liên quan đến Frontend (HTML, JS, CSS, Tailwind):**
+   - Đọc và tuân thủ: `skills/frontend-html-js.md`
+
+3. **Nguyên tắc tiết kiệm Token & Workflow (Dành riêng cho bạn):**
+   - Đọc và tuân thủ: `skills/AI_WORKFLOW.md`
+   - Tuyệt đối không lặp lại prompt của user.
+   - Tránh in ra những đoạn code không thay đổi (boilerplate). Chỉ in phần diff/block thay đổi.
+   - Không sử dụng comment như `// existing code`.
+   - Viết code có thể chạy ngay, chuẩn production.
